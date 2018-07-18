@@ -4,24 +4,41 @@ import(
 	"strings"
 	"io/ioutil"
 	"os/exec"
+	"sync"
 )
 
 func invokeCommand(cmdString string, pipeInput []byte) ([]byte, []byte) {
 
 	parts := strings.Split(cmdString, " ")
 
-	targetCmd := exec.Command(parts[0], parts[1:]...)
+	cmdObject := exec.Command(parts[0], parts[1:]...)
 
-	writer, _ := targetCmd.StdinPipe()
-	reader, _ := targetCmd.StdoutPipe()
+	writer, _ := cmdObject.StdinPipe()
+	reader, _ := cmdObject.StdoutPipe()
 
-	targetCmd.Start()
-	writer.Write(pipeInput)
-	writer.Close()
-	nextInput, _ := ioutil.ReadAll(reader)
-	targetCmd.Wait()
+	var nextInput []byte
 
-	out, _ := targetCmd.CombinedOutput()
+	wg := sync.WaitGroup{}
+	wg.Add(2)
+
+	cmdObject.Start()
+
+	go func() {
+		defer wg.Done()
+		writer.Write(pipeInput)
+		writer.Close()
+	}()
+
+	go func() {
+		defer wg.Done()
+		nextInput, _ = ioutil.ReadAll(reader)
+	}()
+
+	wg.Wait()
+
+	cmdObject.Wait()
+
+	out, _ := cmdObject.CombinedOutput()
 
 	return out, nextInput
 }
