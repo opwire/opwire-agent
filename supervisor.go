@@ -7,7 +7,10 @@ import(
 	"sync"
 )
 
-func invokeCommand(cmdString string, pipeInput []byte) ([]byte, []byte) {
+type Invoker struct {
+}
+
+func (c *Invoker) invokeCommand(cmdString string, pipeInput []byte) ([]byte, []byte) {
 
 	parts := strings.Split(cmdString, " ")
 
@@ -16,12 +19,13 @@ func invokeCommand(cmdString string, pipeInput []byte) ([]byte, []byte) {
 	writer, _ := cmdObject.StdinPipe()
 	reader, _ := cmdObject.StdoutPipe()
 
-	var nextInput []byte
-
-	wg := sync.WaitGroup{}
-	wg.Add(2)
+	var output []byte
+	var pipeOutput []byte
 
 	cmdObject.Start()
+
+	wg := sync.WaitGroup{}
+	wg.Add(3)
 
 	go func() {
 		defer wg.Done()
@@ -31,14 +35,15 @@ func invokeCommand(cmdString string, pipeInput []byte) ([]byte, []byte) {
 
 	go func() {
 		defer wg.Done()
-		nextInput, _ = ioutil.ReadAll(reader)
+		pipeOutput, _ = ioutil.ReadAll(reader)
 	}()
 
+	go func() {
+		defer wg.Done()
+		output, _ = cmdObject.CombinedOutput()
+	}()
+	
 	wg.Wait()
 
-	cmdObject.Wait()
-
-	out, _ := cmdObject.CombinedOutput()
-
-	return out, nextInput
+	return output, pipeOutput
 }
