@@ -1,9 +1,10 @@
 package main
 
 import(
-	"strings"
+	"fmt"
 	"io/ioutil"
 	"os/exec"
+	"strings"
 	"sync"
 )
 
@@ -11,39 +12,42 @@ type Invoker struct {
 }
 
 func (c *Invoker) invokeCommand(cmdString string, pipeInput []byte) ([]byte, []byte) {
+	var cmdOut []byte
+	var cmdErr []byte
 
 	parts := strings.Split(cmdString, " ")
 
 	cmdObject := exec.Command(parts[0], parts[1:]...)
 
 	writer, _ := cmdObject.StdinPipe()
-	reader, _ := cmdObject.StdoutPipe()
-
-	var output []byte
-	var pipeOutput []byte
+	pipeOut, _ := cmdObject.StdoutPipe()
+	pipeErr, _ := cmdObject.StderrPipe()
 
 	cmdObject.Start()
 
 	wg := sync.WaitGroup{}
-	wg.Add(3)
+	wg.Add(2)
 
 	go func() {
 		defer wg.Done()
-		writer.Write(pipeInput)
-		writer.Close()
+		if pipeInput != nil {
+			writer.Write(pipeInput)
+			writer.Close()
+		}
 	}()
 
 	go func() {
 		defer wg.Done()
-		pipeOutput, _ = ioutil.ReadAll(reader)
+		cmdOut, _ = ioutil.ReadAll(pipeOut)
+		fmt.Sprintf("stdout/pipe: [%s]", string(cmdOut))
+
+		cmdErr, _ = ioutil.ReadAll(pipeErr)
+		fmt.Sprintf("stderr/pipe: [%s]", string(cmdErr))
+
+		cmdObject.Wait()
 	}()
 
-	go func() {
-		defer wg.Done()
-		output, _ = cmdObject.CombinedOutput()
-	}()
-	
 	wg.Wait()
 
-	return output, pipeOutput
+	return cmdOut, cmdErr
 }
