@@ -7,12 +7,15 @@ import (
 )
 
 func StartRestServer() (*http.Server) {
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("/_/health", makeHealthCheckHandler())
+	
 	s := &http.Server{
 		Addr:           fmt.Sprintf(":%d", 8888),
 		MaxHeaderBytes: 1 << 22, // Max header of 4MB
+		Handler:        mux,
 	}
-
-	http.HandleFunc("/_/health", makeHealthCheckHandler())
 
 	s.ListenAndServe()
 	
