@@ -6,8 +6,8 @@ import(
 	"github.com/stretchr/testify/assert"
 )
 
-func TestInvoker_invokeCommand_pipeInput_stdout(t *testing.T) {
-	i := Invoker{}
+func TestExecutor_invokeCommand_pipeInput_stdout(t *testing.T) {
+	i := Executor{}
 	out, err := i.invokeCommand("grep hello", []byte("hello grep\ngoodbye grep"))
 	fmt.Printf("Stdout: [%s]\n", string(out))
 	fmt.Printf("Stderr: [%s]\n", string(err))
@@ -16,8 +16,8 @@ func TestInvoker_invokeCommand_pipeInput_stdout(t *testing.T) {
 	assert.True(t, true)
 }
 
-func TestInvoker_invokeCommand_paramIn_stdout(t *testing.T) {
-	i := Invoker{}
+func TestExecutor_invokeCommand_paramIn_stdout(t *testing.T) {
+	i := Executor{}
 	out, err := i.invokeCommand("ps", nil)
 	fmt.Printf("Stdout: [%s]\n", string(out))
 	fmt.Printf("Stderr: [%s]\n", string(err))

@@ -8,10 +8,10 @@ import(
 	"sync"
 )
 
-type Invoker struct {
+type Executor struct {
 }
 
-func (c *Invoker) invokeCommand(cmdString string, pipeInput []byte) ([]byte, []byte) {
+func (c *Executor) invokeCommand(cmdString string, pipeInput []byte) ([]byte, []byte) {
 	var cmdOut []byte
 	var cmdErr []byte
 
