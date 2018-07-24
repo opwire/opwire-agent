@@ -5,11 +5,11 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"github.com/opwire/opwire-agent/entrypoints"
+	"github.com/opwire/opwire-agent/services"
 )
 
 func main() {
-	entrypoints.StartRestServer()
+	services.StartRestServer()
 
 	var buff bytes.Buffer
 	reader, writer := io.Pipe()

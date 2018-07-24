@@ -1,4 +1,4 @@
-package entrypoints
+package services
 
 import (
 	"fmt"
