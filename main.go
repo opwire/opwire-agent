@@ -9,7 +9,9 @@ import (
 )
 
 func main() {
-	services.StartRestServer()
+	services.StartRestServer(&services.ServerConfig{
+		Port: 8888,
+	})
 
 	var buff bytes.Buffer
 	reader, writer := io.Pipe()

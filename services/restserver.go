@@ -6,20 +6,29 @@ import (
 	"net/http"
 )
 
-func StartRestServer() (*http.Server) {
+type ServerConfig struct {
+	Host string
+	Port int
+}
+
+func StartRestServer(c *ServerConfig) (*http.Server) {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/_/health", makeHealthCheckHandler())
-	
+
+	host := c.Host
+	port := 17779
+	if c.Port > 0 {
+    port = c.Port
+	}
+
 	s := &http.Server{
-		Addr:           fmt.Sprintf(":%d", 8888),
+		Addr:           fmt.Sprintf("%s:%d", host, port),
 		MaxHeaderBytes: 1 << 22, // Max header of 4MB
 		Handler:        mux,
 	}
 
-	s.ListenAndServe()
-	
-	return s
+	return waitForTermSignal(s)
 }
 
 func makeHealthCheckHandler() func(http.ResponseWriter, *http.Request) {
@@ -33,4 +42,9 @@ func makeHealthCheckHandler() func(http.ResponseWriter, *http.Request) {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 		}
 	}
+}
+
+func waitForTermSignal(s *http.Server) (*http.Server) {
+	s.ListenAndServe()
+	return s
 }
