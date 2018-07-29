@@ -11,6 +11,10 @@ import(
 type Executor struct {
 }
 
+func NewExecutor(command string) (*Executor, error) {
+	return &Executor{}, nil
+}
+
 func (c *Executor) invokeCommand(cmdString string, pipeInput []byte) ([]byte, []byte) {
 	var cmdOut []byte
 	var cmdErr []byte

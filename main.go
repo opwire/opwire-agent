@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	services.StartRestServer(&services.ServerConfig{
+	services.NewRestServer(&services.ServerOptions{
 		Port: 8888,
 	})
 
