@@ -13,14 +13,16 @@ type ServerOptions struct {
 	SuppressAutoStart bool
 }
 
-type RestServer struct {
+type AgentServer struct {
 	httpServer *http.Server
+	stateStore *StateStore
 	executor *handlers.Executor
+	initialized bool
 }
 
-func NewRestServer(c *ServerOptions) (*RestServer) {
+func NewAgentServer(c *ServerOptions) (*AgentServer) {
 	// creates a new server instance
-	s := &RestServer{}
+	s := &AgentServer{}
 
 	// creates a new command executor
 	s.executor, _ = handlers.NewExecutor("ls", &handlers.ExecutorOptions{})
@@ -38,6 +40,9 @@ func NewRestServer(c *ServerOptions) (*RestServer) {
 		port = c.Port
 	}
 
+	// creates a StateStore instance
+	s.stateStore = NewStateStore()
+
 	// creates a new HTTP server
 	s.httpServer = &http.Server{
 		Addr:           fmt.Sprintf("%s:%d", host, port),
@@ -48,10 +53,13 @@ func NewRestServer(c *ServerOptions) (*RestServer) {
 	// listens and waiting for TERM signal for shutting down
 	waitForTermSignal(s.httpServer)
 
+	// marks this instance has been initialized properly
+	s.initialized = true
+
 	return s
 }
 
-func (s *RestServer) makeHealthCheckHandler() func(http.ResponseWriter, *http.Request) {
+func (s *AgentServer) makeHealthCheckHandler() func(http.ResponseWriter, *http.Request) {
 	return func (w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
@@ -64,7 +72,7 @@ func (s *RestServer) makeHealthCheckHandler() func(http.ResponseWriter, *http.Re
 	}
 }
 
-func (s *RestServer) makeInvocationHandler() func(http.ResponseWriter, *http.Request) {
+func (s *AgentServer) makeInvocationHandler() func(http.ResponseWriter, *http.Request) {
 	return func (w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case

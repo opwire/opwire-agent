@@ -7,6 +7,8 @@ import (
 )
 
 func TestMakeHealthCheckHandler(t *testing.T) {
+	s := &AgentServer{}
+
 	req, err := http.NewRequest("GET", "/health-check", nil)
 	if err != nil {
 			t.Fatal(err)
@@ -14,7 +16,7 @@ func TestMakeHealthCheckHandler(t *testing.T) {
 
 	// creates a ResponseRecorder to record the response.
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(makeHealthCheckHandler())
+	handler := http.HandlerFunc(s.makeHealthCheckHandler())
 
 	// calls the ServeHTTP method and pass in our Request and ResponseRecorder.
 	handler.ServeHTTP(rr, req)
