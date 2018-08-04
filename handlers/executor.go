@@ -2,6 +2,7 @@ package handlers
 
 import(
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os/exec"
 	"strings"
@@ -9,13 +10,21 @@ import(
 )
 
 type Executor struct {
+	command string
 }
 
-func NewExecutor(command string) (*Executor, error) {
-	return &Executor{}, nil
+type ExecutorOptions struct {
 }
 
-func (c *Executor) invokeCommand(cmdString string, pipeInput []byte) ([]byte, []byte) {
+func NewExecutor(cmd string, opts *ExecutorOptions) (*Executor, error) {
+	e := &Executor{
+		command: cmd,
+	}
+	return e, nil
+}
+
+func (e *Executor) Run(pipeInput []byte) ([]byte, []byte) {
+	var cmdString string = e.command
 	var cmdOut []byte
 	var cmdErr []byte
 
@@ -54,4 +63,8 @@ func (c *Executor) invokeCommand(cmdString string, pipeInput []byte) ([]byte, []
 	wg.Wait()
 
 	return cmdOut, cmdErr
+}
+
+func (e *Executor) RunWithPipes(ip *io.PipeReader, op *io.PipeWriter, ep *io.PipeWriter) (error) {
+	return nil
 }

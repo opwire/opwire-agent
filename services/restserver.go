@@ -10,6 +10,7 @@ import (
 type ServerOptions struct {
 	Host string
 	Port int
+	SuppressAutoStart bool
 }
 
 type RestServer struct {
@@ -18,16 +19,17 @@ type RestServer struct {
 }
 
 func NewRestServer(c *ServerOptions) (*RestServer) {
+	// creates a new server instance
 	s := &RestServer{}
 
 	// creates a new command executor
-	s.executor, _ = handlers.NewExecutor("ls")
+	s.executor, _ = handlers.NewExecutor("ls", &handlers.ExecutorOptions{})
 
 	// defines HTTP request handlers
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/_/health", makeHealthCheckHandler())
-	mux.HandleFunc("/run", makeInvocationHandler())
+	mux.HandleFunc("/_/health", s.makeHealthCheckHandler())
+	mux.HandleFunc("/run", s.makeInvocationHandler())
 
 	// determines server's parameters
 	host := c.Host
@@ -49,7 +51,7 @@ func NewRestServer(c *ServerOptions) (*RestServer) {
 	return s
 }
 
-func makeHealthCheckHandler() func(http.ResponseWriter, *http.Request) {
+func (s *RestServer) makeHealthCheckHandler() func(http.ResponseWriter, *http.Request) {
 	return func (w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
@@ -62,7 +64,7 @@ func makeHealthCheckHandler() func(http.ResponseWriter, *http.Request) {
 	}
 }
 
-func makeInvocationHandler() func(http.ResponseWriter, *http.Request) {
+func (s *RestServer) makeInvocationHandler() func(http.ResponseWriter, *http.Request) {
 	return func (w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case
