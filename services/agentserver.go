@@ -25,7 +25,7 @@ func NewAgentServer(c *ServerOptions) (*AgentServer) {
 	s := &AgentServer{}
 
 	// creates a new command executor
-	s.executor, _ = handlers.NewExecutor("ls", &handlers.ExecutorOptions{})
+	s.executor, _ = handlers.NewExecutor(&handlers.ExecutorOptions{})
 
 	// defines HTTP request handlers
 	mux := http.NewServeMux()
@@ -50,13 +50,23 @@ func NewAgentServer(c *ServerOptions) (*AgentServer) {
 		Handler:        mux,
 	}
 
-	// listens and waiting for TERM signal for shutting down
-	waitForTermSignal(s.httpServer)
-
 	// marks this instance has been initialized properly
 	s.initialized = true
 
+	if c == nil || !c.SuppressAutoStart {
+		s.Start()
+	}
 	return s
+}
+
+func (s *AgentServer) Start() (*AgentServer, error) {
+	// listens and waiting for TERM signal for shutting down
+	waitForTermSignal(s.httpServer)
+	return s, nil
+}
+
+func (s *AgentServer) Shutdown() (*AgentServer, error) {
+	return s, nil
 }
 
 func (s *AgentServer) makeHealthCheckHandler() func(http.ResponseWriter, *http.Request) {

@@ -7,8 +7,12 @@ import(
 )
 
 func TestExecutor_invokeCommand_pipeInput_stdout(t *testing.T) {
-	e, _ := NewExecutor("grep hello", &ExecutorOptions{})
-	out, err := e.Run([]byte("hello grep\ngoodbye grep"))
+	e, _ := NewExecutor(&ExecutorOptions{
+		Command: CommandDescriptor{
+			CommandString: "grep hello",
+		},
+	})
+	out, err, _ := e.Run(nil, []byte("hello grep\ngoodbye grep"))
 	fmt.Printf("Stdout: [%s]\n", string(out))
 	fmt.Printf("Stderr: [%s]\n", string(err))
 	// assert.Equal(t, out, []byte("hello grep\n"))
@@ -17,8 +21,12 @@ func TestExecutor_invokeCommand_pipeInput_stdout(t *testing.T) {
 }
 
 func TestExecutor_invokeCommand_paramIn_stdout(t *testing.T) {
-	e, _ := NewExecutor("ps", &ExecutorOptions{})
-	out, err := e.Run(nil)
+	e, _ := NewExecutor(&ExecutorOptions{
+		Command: CommandDescriptor{
+			CommandString: "ps",
+		},
+	})
+	out, err, _ := e.Run(nil, nil)
 	fmt.Printf("Stdout: [%s]\n", string(out))
 	fmt.Printf("Stderr: [%s]\n", string(err))
 }
