@@ -9,7 +9,8 @@ import (
 
 type ServerOptions struct {
 	Host string
-	Port int
+	Port uint
+	CommandString string
 	SuppressAutoStart bool
 }
 
@@ -25,7 +26,11 @@ func NewAgentServer(c *ServerOptions) (*AgentServer) {
 	s := &AgentServer{}
 
 	// creates a new command executor
-	s.executor, _ = handlers.NewExecutor(&handlers.ExecutorOptions{})
+	s.executor, _ = handlers.NewExecutor(&handlers.ExecutorOptions{
+		Command: handlers.CommandDescriptor{
+			CommandString: c.CommandString,
+		},
+	})
 
 	// defines HTTP request handlers
 	mux := http.NewServeMux()
@@ -106,4 +111,4 @@ func waitForTermSignal(s *http.Server) (*http.Server) {
 	return s
 }
 
-const DEFAULT_PORT int = 17779
+const DEFAULT_PORT uint = 17779
