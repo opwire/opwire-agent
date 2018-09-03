@@ -97,8 +97,8 @@ func (s *AgentServer) makeInvocationHandler() func(http.ResponseWriter, *http.Re
 			http.MethodPut,
 			http.MethodPatch,
 			http.MethodDelete:
-				ci := s.buildCommandInvocation(r)
-				pi := s.buildCommandStdinData(r)
+				ci, _ := s.buildCommandInvocation(r)
+				pi, _ := s.buildCommandStdinData(r)
 				outData, errData, err := s.executor.Run(ci, pi)
 				if err == nil {
 					w.WriteHeader(http.StatusOK)
@@ -109,23 +109,30 @@ func (s *AgentServer) makeInvocationHandler() func(http.ResponseWriter, *http.Re
 					w.Header().Set("Content-Type", "application/text")
 					io.WriteString(w, string(errData))
 				}
-				break
+			break
 		default:
 			w.WriteHeader(http.StatusMethodNotAllowed)
 		}
 	}
 }
 
-func (s *AgentServer) buildCommandInvocation(r *http.Request) (*handlers.CommandInvocation) {
-	return &handlers.CommandInvocation{}
+func (s *AgentServer) buildCommandInvocation(r *http.Request) (*handlers.CommandInvocation, error) {
+	return &handlers.CommandInvocation{}, nil
 }
 
-func (s *AgentServer) buildCommandStdinData(r *http.Request) ([]byte) {
-	body, err := ioutil.ReadAll(r.Body)
-	if err == nil {
-		return body
+func (s *AgentServer) buildCommandStdinData(r *http.Request) ([]byte, error) {
+	if r.Body == nil {
+		return nil, nil
 	}
-	return nil
+
+	defer r.Body.Close()
+
+	data, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
 }
 
 func waitForTermSignal(s *http.Server) (*http.Server) {
