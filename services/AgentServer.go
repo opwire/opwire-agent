@@ -3,6 +3,7 @@ package services
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"github.com/opwire/opwire-agent/handlers"
 )
@@ -96,14 +97,35 @@ func (s *AgentServer) makeInvocationHandler() func(http.ResponseWriter, *http.Re
 			http.MethodPut,
 			http.MethodPatch,
 			http.MethodDelete:
-				w.WriteHeader(http.StatusOK)
-				w.Header().Set("Content-Type", "application/json")
-				io.WriteString(w, fmt.Sprintf(`{"action": "run"}`))
+				ci := s.buildCommandInvocation(r)
+				pi := s.buildCommandStdinData(r)
+				outData, errData, err := s.executor.Run(ci, pi)
+				if err == nil {
+					w.WriteHeader(http.StatusOK)
+					w.Header().Set("Content-Type", "application/text")
+					io.WriteString(w, string(outData))
+				} else {
+					w.WriteHeader(http.StatusInternalServerError)
+					w.Header().Set("Content-Type", "application/text")
+					io.WriteString(w, string(errData))
+				}
 				break
 		default:
 			w.WriteHeader(http.StatusMethodNotAllowed)
 		}
 	}
+}
+
+func (s *AgentServer) buildCommandInvocation(r *http.Request) (*handlers.CommandInvocation) {
+	return &handlers.CommandInvocation{}
+}
+
+func (s *AgentServer) buildCommandStdinData(r *http.Request) ([]byte) {
+	body, err := ioutil.ReadAll(r.Body)
+	if err == nil {
+		return body
+	}
+	return nil
 }
 
 func waitForTermSignal(s *http.Server) (*http.Server) {
