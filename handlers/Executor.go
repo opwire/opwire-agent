@@ -48,48 +48,50 @@ func (e *Executor) Register(name string, descriptor *CommandDescriptor) (error) 
 }
 
 func (e *Executor) Run(opts *CommandInvocation, pipeInput []byte) ([]byte, []byte, error) {
-	if cmdObject, ok := e.commands[DEFAULT_COMMAND]; ok {
-		var cmdString string = cmdObject.CommandString
-		var cmdOut []byte
-		var cmdErr []byte
-
+	if commandDescriptor, ok := e.commands[DEFAULT_COMMAND]; ok {
+		var cmdString string = commandDescriptor.CommandString
 		parts := strings.Split(cmdString, " ")
-
 		cmdObject := exec.Command(parts[0], parts[1:]...)
-
-		writer, _ := cmdObject.StdinPipe()
-		pipeOut, _ := cmdObject.StdoutPipe()
-		pipeErr, _ := cmdObject.StderrPipe()
-
-		cmdObject.Start()
-
-		wg := sync.WaitGroup{}
-		wg.Add(2)
-
-		go func() {
-			defer wg.Done()
-			if pipeInput != nil {
-				writer.Write(pipeInput)
-				writer.Close()
-			}
-		}()
-
-		go func() {
-			defer wg.Done()
-			cmdOut, _ = ioutil.ReadAll(pipeOut)
-			fmt.Sprintf("stdout/pipe: [%s]", string(cmdOut))
-
-			cmdErr, _ = ioutil.ReadAll(pipeErr)
-			fmt.Sprintf("stderr/pipe: [%s]", string(cmdErr))
-
-			cmdObject.Wait()
-		}()
-
-		wg.Wait()
-
-		return cmdOut, cmdErr, nil
+		return runSingleCommand(cmdObject, pipeInput)
 	}
 	return nil, nil, nil
+}
+
+func runSingleCommand(cmdObject *exec.Cmd, pipeInput []byte) ([]byte, []byte, error) {
+	var cmdOut []byte
+	var cmdErr []byte
+	
+	writer, _ := cmdObject.StdinPipe()
+	pipeOut, _ := cmdObject.StdoutPipe()
+	pipeErr, _ := cmdObject.StderrPipe()
+
+	cmdObject.Start()
+
+	wg := sync.WaitGroup{}
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		if pipeInput != nil {
+			writer.Write(pipeInput)
+			writer.Close()
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		cmdOut, _ = ioutil.ReadAll(pipeOut)
+		fmt.Sprintf("stdout/pipe: [%s]", string(cmdOut))
+
+		cmdErr, _ = ioutil.ReadAll(pipeErr)
+		fmt.Sprintf("stderr/pipe: [%s]", string(cmdErr))
+
+		cmdObject.Wait()
+	}()
+
+	wg.Wait()
+
+	return cmdOut, cmdErr, nil
 }
 
 func (e *Executor) RunWithPipes(opts *CommandInvocation, ip *io.PipeReader, op *io.PipeWriter, ep *io.PipeWriter) (error) {
