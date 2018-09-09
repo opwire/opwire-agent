@@ -24,6 +24,8 @@ type CommandDescriptor struct {
 }
 
 type CommandInvocation struct {
+	CommandString string
+	Name string
 }
 
 func NewExecutor(opts *ExecutorOptions) (*Executor, error) {
@@ -48,13 +50,28 @@ func (e *Executor) Register(name string, descriptor *CommandDescriptor) (error) 
 }
 
 func (e *Executor) Run(opts *CommandInvocation, pipeInput []byte) ([]byte, []byte, error) {
-	if commandDescriptor, ok := e.commands[DEFAULT_COMMAND]; ok {
-		var cmdString string = commandDescriptor.CommandString
-		parts := strings.Split(cmdString, " ")
+	if descriptor := e.getCommandDescriptor(opts); descriptor != nil {
+		parts := strings.Split(descriptor.CommandString, " ")
 		cmdObject := exec.Command(parts[0], parts[1:]...)
 		return runSingleCommand(cmdObject, pipeInput)
 	}
 	return nil, nil, nil
+}
+
+func (e *Executor) getCommandDescriptor(opts *CommandInvocation) *CommandDescriptor {
+	if opts != nil && len(opts.CommandString) > 0 {
+		return &CommandDescriptor{
+			CommandString: opts.CommandString,
+		}
+	} else if len(opts.Name) > 0 {
+		if descriptor, ok := e.commands[opts.Name]; ok {
+			return &descriptor
+		}
+	}
+	if descriptor, ok := e.commands[DEFAULT_COMMAND]; ok {
+		return &descriptor
+	}
+	return nil
 }
 
 func runSingleCommand(cmdObject *exec.Cmd, pipeInput []byte) ([]byte, []byte, error) {
