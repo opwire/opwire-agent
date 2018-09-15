@@ -1,12 +1,13 @@
 package handlers
 
 import(
-	"fmt"
+	"errors"
 	"io"
 	"io/ioutil"
 	"os/exec"
 	"strings"
 	"sync"
+	"github.com/opwire/opwire-agent/utils"
 )
 
 const DEFAULT_COMMAND string = "opwire-agent-default"
@@ -21,6 +22,7 @@ type ExecutorOptions struct {
 
 type CommandDescriptor struct {
 	CommandString string
+	subCommands []string
 }
 
 type CommandInvocation struct {
@@ -41,27 +43,35 @@ func (e *Executor) Register(name string, descriptor *CommandDescriptor) (error) 
 		e.commands = make(map[string]CommandDescriptor)
 	}
 	if descriptor != nil && len(descriptor.CommandString) > 0 {
-		cloned := CommandDescriptor{
-			CommandString: descriptor.CommandString,
+		if cloned, err := prepareCommandDescriptor(descriptor.CommandString); err == nil {
+			e.commands[name] = cloned
 		}
-		e.commands[name] = cloned
 	}
 	return nil
 }
 
-func (e *Executor) Run(opts *CommandInvocation, pipeInput []byte) ([]byte, []byte, error) {
+func (e *Executor) Run(opts *CommandInvocation, inData []byte) ([]byte, []byte, error) {
 	if descriptor := e.getCommandDescriptor(opts); descriptor != nil {
-		parts := strings.Split(descriptor.CommandString, " ")
-		cmdObject := exec.Command(parts[0], parts[1:]...)
-		return runSingleCommand(cmdObject, pipeInput)
+		count := len(descriptor.subCommands)
+		if count <= 0 {
+			return nil, nil, errors.New("Command not found")
+		} else if count == 1 {
+			if cmd, err := buildExecCmd(descriptor.subCommands[0]); err == nil {
+				return runSingleCommand(cmd, inData)
+			} else {
+				return nil, nil, err
+			}
+		} else {
+			
+		}
 	}
 	return nil, nil, nil
 }
 
 func (e *Executor) getCommandDescriptor(opts *CommandInvocation) *CommandDescriptor {
 	if opts != nil && len(opts.CommandString) > 0 {
-		return &CommandDescriptor{
-			CommandString: opts.CommandString,
+		if descriptor, err := prepareCommandDescriptor(opts.CommandString); err == nil {
+			return &descriptor
 		}
 	} else if len(opts.Name) > 0 {
 		if descriptor, ok := e.commands[opts.Name]; ok {
@@ -74,13 +84,43 @@ func (e *Executor) getCommandDescriptor(opts *CommandInvocation) *CommandDescrip
 	return nil
 }
 
-func runSingleCommand(cmdObject *exec.Cmd, pipeInput []byte) ([]byte, []byte, error) {
-	var cmdOut []byte
-	var cmdErr []byte
+func prepareCommandDescriptor(cmdString string) (CommandDescriptor, error) {
+	descriptor := CommandDescriptor{}
+	if len(cmdString) == 0 {
+		return descriptor, errors.New("Command must not be empty")
+	}
+	descriptor.CommandString = cmdString
+	descriptor.subCommands = utils.Split(descriptor.CommandString, "|")
+	return descriptor, nil
+}
+
+func buildExecCmds(d *CommandDescriptor) ([]*exec.Cmd, error) {
+	procs := make([]*exec.Cmd, 0)
+	for _, proc := range d.subCommands {
+		if cmd, err := buildExecCmd(proc); err == nil {
+			procs = append(procs, cmd)
+		} else {
+			return nil, err
+		}
+	}
+	return procs, nil
+}
+
+func buildExecCmd(cmdString string) (*exec.Cmd, error) {
+	if len(cmdString) == 0 {
+		return nil, errors.New("Sub-command must not be empty")
+	}
+	parts := strings.Split(cmdString, " ")
+	return exec.Command(parts[0], parts[1:]...), nil
+}
+
+func runSingleCommand(cmdObject *exec.Cmd, inData []byte) ([]byte, []byte, error) {
+	var outData []byte
+	var errData []byte
 	
-	writer, _ := cmdObject.StdinPipe()
-	pipeOut, _ := cmdObject.StdoutPipe()
-	pipeErr, _ := cmdObject.StderrPipe()
+	inPipe, _ := cmdObject.StdinPipe()
+	outPipe, _ := cmdObject.StdoutPipe()
+	errPipe, _ := cmdObject.StderrPipe()
 
 	cmdObject.Start()
 
@@ -89,26 +129,22 @@ func runSingleCommand(cmdObject *exec.Cmd, pipeInput []byte) ([]byte, []byte, er
 
 	go func() {
 		defer wg.Done()
-		if pipeInput != nil {
-			writer.Write(pipeInput)
-			writer.Close()
+		if inData != nil {
+			inPipe.Write(inData)
+			inPipe.Close()
 		}
 	}()
 
 	go func() {
 		defer wg.Done()
-		cmdOut, _ = ioutil.ReadAll(pipeOut)
-		fmt.Sprintf("stdout/pipe: [%s]", string(cmdOut))
-
-		cmdErr, _ = ioutil.ReadAll(pipeErr)
-		fmt.Sprintf("stderr/pipe: [%s]", string(cmdErr))
-
+		outData, _ = ioutil.ReadAll(outPipe)
+		errData, _ = ioutil.ReadAll(errPipe)
 		cmdObject.Wait()
 	}()
 
 	wg.Wait()
 
-	return cmdOut, cmdErr, nil
+	return outData, errData, nil
 }
 
 func (e *Executor) RunWithPipes(opts *CommandInvocation, ip *io.PipeReader, op *io.PipeWriter, ep *io.PipeWriter) (error) {
