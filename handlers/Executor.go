@@ -1,6 +1,7 @@
 package handlers
 
 import(
+	"bytes"
 	"errors"
 	"io"
 	"io/ioutil"
@@ -14,6 +15,7 @@ const DEFAULT_COMMAND string = "opwire-agent-default"
 
 type Executor struct {
 	commands map[string]CommandDescriptor
+	pipeChain *PipeChain
 }
 
 type ExecutorOptions struct {
@@ -35,6 +37,7 @@ func NewExecutor(opts *ExecutorOptions) (*Executor, error) {
 	if opts != nil {
 		e.Register(DEFAULT_COMMAND, &opts.Command)
 	}
+	e.pipeChain = &PipeChain{}
 	return e, nil
 }
 
@@ -51,37 +54,42 @@ func (e *Executor) Register(name string, descriptor *CommandDescriptor) (error) 
 }
 
 func (e *Executor) Run(opts *CommandInvocation, inData []byte) ([]byte, []byte, error) {
-	if descriptor := e.getCommandDescriptor(opts); descriptor != nil {
-		count := len(descriptor.subCommands)
-		if count <= 0 {
-			return nil, nil, errors.New("Command not found")
-		} else if count == 1 {
-			if cmd, err := buildExecCmd(descriptor.subCommands[0]); err == nil {
-				return runSingleCommand(cmd, inData)
+	if descriptor, err := e.getCommandDescriptor(opts); err == nil {
+		if cmds, err := buildExecCmds(descriptor); err == nil {
+			count := len(cmds)
+			if count > 0 {
+				if count == 1 {
+					return runSingleCommand(cmds[0], inData)
+				}
+				ib := bytes.NewBuffer(inData)
+				var ob bytes.Buffer
+				var eb bytes.Buffer
+				err := e.pipeChain.Run(ib, &ob, &eb, cmds...)
+				return ob.Bytes(), eb.Bytes(), err
 			} else {
-				return nil, nil, err
+				return nil, nil, errors.New("Command not found")
 			}
 		} else {
-			
+			return nil, nil, err
 		}
+	} else {
+		return nil, nil, err
 	}
-	return nil, nil, nil
 }
 
-func (e *Executor) getCommandDescriptor(opts *CommandInvocation) *CommandDescriptor {
+func (e *Executor) getCommandDescriptor(opts *CommandInvocation) (*CommandDescriptor, error) {
 	if opts != nil && len(opts.CommandString) > 0 {
-		if descriptor, err := prepareCommandDescriptor(opts.CommandString); err == nil {
-			return &descriptor
-		}
+		descriptor, err := prepareCommandDescriptor(opts.CommandString)
+		return &descriptor, err
 	} else if len(opts.Name) > 0 {
 		if descriptor, ok := e.commands[opts.Name]; ok {
-			return &descriptor
+			return &descriptor, nil
 		}
 	}
 	if descriptor, ok := e.commands[DEFAULT_COMMAND]; ok {
-		return &descriptor
+		return &descriptor, nil
 	}
-	return nil
+	return nil, errors.New("Default command has not been provided")
 }
 
 func prepareCommandDescriptor(cmdString string) (CommandDescriptor, error) {
