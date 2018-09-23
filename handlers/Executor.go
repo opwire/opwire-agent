@@ -3,7 +3,6 @@ package handlers
 import(
 	"bytes"
 	"errors"
-	"io"
 	"io/ioutil"
 	"os/exec"
 	"strings"
@@ -14,7 +13,7 @@ import(
 const DEFAULT_COMMAND string = "opwire-agent-default"
 
 type Executor struct {
-	commands map[string]CommandDescriptor
+	commands map[string]*CommandDescriptor
 	pipeChain *PipeChain
 }
 
@@ -43,7 +42,7 @@ func NewExecutor(opts *ExecutorOptions) (*Executor, error) {
 
 func (e *Executor) Register(name string, descriptor *CommandDescriptor) (error) {
 	if e.commands == nil {
-		e.commands = make(map[string]CommandDescriptor)
+		e.commands = make(map[string]*CommandDescriptor)
 	}
 	if descriptor != nil && len(descriptor.CommandString) > 0 {
 		if cloned, err := prepareCommandDescriptor(descriptor.CommandString); err == nil {
@@ -79,21 +78,20 @@ func (e *Executor) Run(opts *CommandInvocation, inData []byte) ([]byte, []byte, 
 
 func (e *Executor) getCommandDescriptor(opts *CommandInvocation) (*CommandDescriptor, error) {
 	if opts != nil && len(opts.CommandString) > 0 {
-		descriptor, err := prepareCommandDescriptor(opts.CommandString)
-		return &descriptor, err
+		return prepareCommandDescriptor(opts.CommandString)
 	} else if len(opts.Name) > 0 {
 		if descriptor, ok := e.commands[opts.Name]; ok {
-			return &descriptor, nil
+			return descriptor, nil
 		}
 	}
 	if descriptor, ok := e.commands[DEFAULT_COMMAND]; ok {
-		return &descriptor, nil
+		return descriptor, nil
 	}
 	return nil, errors.New("Default command has not been provided")
 }
 
-func prepareCommandDescriptor(cmdString string) (CommandDescriptor, error) {
-	descriptor := CommandDescriptor{}
+func prepareCommandDescriptor(cmdString string) (*CommandDescriptor, error) {
+	descriptor := &CommandDescriptor{}
 	if len(cmdString) == 0 {
 		return descriptor, errors.New("Command must not be empty")
 	}
@@ -153,8 +151,4 @@ func runSingleCommand(cmdObject *exec.Cmd, inData []byte) ([]byte, []byte, error
 	wg.Wait()
 
 	return outData, errData, nil
-}
-
-func (e *Executor) RunWithPipes(opts *CommandInvocation, ip *io.PipeReader, op *io.PipeWriter, ep *io.PipeWriter) (error) {
-	return nil
 }
