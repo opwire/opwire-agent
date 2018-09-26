@@ -57,13 +57,15 @@ func (e *Executor) Run(opts *CommandInvocation, inData []byte) ([]byte, []byte, 
 		if cmds, err := buildExecCmds(descriptor); err == nil {
 			count := len(cmds)
 			if count > 0 {
-				if count == 1 {
-					return runSingleCommand(cmds[0], inData)
-				}
 				ib := bytes.NewBuffer(inData)
 				var ob bytes.Buffer
 				var eb bytes.Buffer
-				err := e.pipeChain.Run(ib, &ob, &eb, cmds...)
+				var err error
+				if count == 1 {
+					err = runCommand(ib, &ob, &eb, cmds[0])
+				} else {
+					err = e.pipeChain.Run(ib, &ob, &eb, cmds...)
+				}
 				return ob.Bytes(), eb.Bytes(), err
 			} else {
 				return nil, nil, errors.New("Command not found")
@@ -118,6 +120,16 @@ func buildExecCmd(cmdString string) (*exec.Cmd, error) {
 	}
 	parts := strings.Split(cmdString, " ")
 	return exec.Command(parts[0], parts[1:]...), nil
+}
+
+func runCommand(ib *bytes.Buffer, ob *bytes.Buffer, eb *bytes.Buffer, cmdObject *exec.Cmd) (err error) {
+	cmdObject.Stdin = ib
+	cmdObject.Stdout = ob
+	cmdObject.Stderr = eb
+	if err = cmdObject.Start(); err != nil {
+		return err
+	}
+	return cmdObject.Wait()
 }
 
 func runSingleCommand(cmdObject *exec.Cmd, inData []byte) ([]byte, []byte, error) {

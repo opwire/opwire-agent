@@ -14,6 +14,7 @@ clean:
 	go clean ./...
 	find . -name \*~ | xargs -r rm -f
 	rm -f opwire-agent
+	rm -f opwire-lab
 
 showinfo:
 	@echo "Current go version: $(GO_VERSION);"
