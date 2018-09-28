@@ -5,7 +5,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"github.com/opwire/opwire-agent/handlers"
+	"github.com/opwire/opwire-agent/invokers"
 )
 
 type ServerOptions struct {
@@ -18,7 +18,7 @@ type ServerOptions struct {
 type AgentServer struct {
 	httpServer *http.Server
 	stateStore *StateStore
-	executor *handlers.Executor
+	executor *invokers.Executor
 	initialized bool
 }
 
@@ -27,13 +27,13 @@ func NewAgentServer(c *ServerOptions) (*AgentServer) {
 	s := &AgentServer{}
 
 	// creates a new command executor
-	s.executor, _ = handlers.NewExecutor(&handlers.ExecutorOptions{
-		Command: handlers.CommandDescriptor{
+	s.executor, _ = invokers.NewExecutor(&invokers.ExecutorOptions{
+		Command: invokers.CommandDescriptor{
 			CommandString: c.CommandString,
 		},
 	})
 
-	// defines HTTP request handlers
+	// defines HTTP request invokers
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/_/health", s.makeHealthCheckHandler())
@@ -116,8 +116,8 @@ func (s *AgentServer) makeInvocationHandler() func(http.ResponseWriter, *http.Re
 	}
 }
 
-func (s *AgentServer) buildCommandInvocation(r *http.Request) (*handlers.CommandInvocation, error) {
-	return &handlers.CommandInvocation{}, nil
+func (s *AgentServer) buildCommandInvocation(r *http.Request) (*invokers.CommandInvocation, error) {
+	return &invokers.CommandInvocation{}, nil
 }
 
 func (s *AgentServer) buildCommandStdinData(r *http.Request) ([]byte, error) {
