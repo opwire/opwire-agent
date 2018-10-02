@@ -22,16 +22,23 @@ type AgentServer struct {
 	initialized bool
 }
 
-func NewAgentServer(c *ServerOptions) (*AgentServer) {
+func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
 	// creates a new server instance
-	s := &AgentServer{}
+	s = &AgentServer{}
 
 	// creates a new command executor
-	s.executor, _ = invokers.NewExecutor(&invokers.ExecutorOptions{
+	s.executor, err = invokers.NewExecutor(&invokers.ExecutorOptions{
 		Command: invokers.CommandDescriptor{
 			CommandString: c.CommandString,
 		},
 	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	// creates a StateStore instance
+	s.stateStore = NewStateStore()
 
 	// defines HTTP request invokers
 	mux := http.NewServeMux()
@@ -39,30 +46,24 @@ func NewAgentServer(c *ServerOptions) (*AgentServer) {
 	mux.HandleFunc("/_/health", s.makeHealthCheckHandler())
 	mux.HandleFunc("/run", s.makeInvocationHandler())
 
-	// determines server's parameters
-	host := c.Host
-	port := DEFAULT_PORT
-	if c.Port > 0 {
-		port = c.Port
-	}
-
-	// creates a StateStore instance
-	s.stateStore = NewStateStore()
-
 	// creates a new HTTP server
 	s.httpServer = &http.Server{
-		Addr:           fmt.Sprintf("%s:%d", host, port),
+		Addr:           buildHttpAddr(c),
 		MaxHeaderBytes: 1 << 22, // Max header of 4MB
 		Handler:        mux,
+	}
+
+	// starts the server by default
+	if c == nil || !c.SuppressAutoStart {
+		if _, err = s.Start(); err != nil {
+			return nil, err
+		}
 	}
 
 	// marks this instance has been initialized properly
 	s.initialized = true
 
-	if c == nil || !c.SuppressAutoStart {
-		s.Start()
-	}
-	return s
+	return s, nil
 }
 
 func (s *AgentServer) Start() (*AgentServer, error) {
@@ -138,6 +139,14 @@ func (s *AgentServer) buildCommandStdinData(r *http.Request) ([]byte, error) {
 func waitForTermSignal(s *http.Server) (*http.Server) {
 	s.ListenAndServe()
 	return s
+}
+
+func buildHttpAddr(c *ServerOptions) string {
+	port := DEFAULT_PORT
+	if c.Port > 0 {
+		port = c.Port
+	}
+	return fmt.Sprintf("%s:%d", c.Host, port)
 }
 
 const DEFAULT_PORT uint = 17779

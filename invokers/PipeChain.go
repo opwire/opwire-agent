@@ -9,6 +9,10 @@ import (
 type PipeChain struct {
 }
 
+func NewPipeChain() (*PipeChain) {
+	return &PipeChain{}
+}
+
 func (p *PipeChain) Run(ib *bytes.Buffer, ob *bytes.Buffer, eb *bytes.Buffer, chain ...*exec.Cmd) (err error) {
 	pipes := make([]*io.PipeWriter, len(chain)-1)
 	i := 0
@@ -23,7 +27,7 @@ func (p *PipeChain) Run(ib *bytes.Buffer, ob *bytes.Buffer, eb *bytes.Buffer, ch
 	chain[i].Stdout = ob
 	chain[i].Stderr = eb
 
-	if err := p.next(chain, pipes); err != nil {
+	if err = p.next(chain, pipes); err != nil {
 		// log or do something with this error
 	}
 	return err

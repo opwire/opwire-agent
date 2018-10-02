@@ -33,10 +33,12 @@ type CommandInvocation struct {
 
 func NewExecutor(opts *ExecutorOptions) (*Executor, error) {
 	e := &Executor{}
+	e.pipeChain = NewPipeChain()
 	if opts != nil {
-		e.Register(DEFAULT_COMMAND, &opts.Command)
+		if err := e.Register(DEFAULT_COMMAND, &opts.Command); err != nil {
+			return nil, err
+		}
 	}
-	e.pipeChain = &PipeChain{}
 	return e, nil
 }
 
@@ -47,6 +49,8 @@ func (e *Executor) Register(name string, descriptor *CommandDescriptor) (error) 
 	if descriptor != nil && len(descriptor.CommandString) > 0 {
 		if cloned, err := prepareCommandDescriptor(descriptor.CommandString); err == nil {
 			e.commands[name] = cloned
+		} else {
+			return err
 		}
 	}
 	return nil
