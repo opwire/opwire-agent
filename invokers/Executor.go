@@ -57,28 +57,32 @@ func (e *Executor) Register(name string, descriptor *CommandDescriptor) (error) 
 }
 
 func (e *Executor) Run(opts *CommandInvocation, inData []byte) ([]byte, []byte, error) {
+	ib := bytes.NewBuffer(inData)
+	var ob bytes.Buffer
+	var eb bytes.Buffer
+	if err := e.RunWithBuffers(ib, opts, &ob, &eb); err != nil {
+		return nil, nil, err
+	}
+	return ob.Bytes(), eb.Bytes(), nil
+}
+
+func (e *Executor) RunWithBuffers(ib *bytes.Buffer, opts *CommandInvocation, ob *bytes.Buffer, eb *bytes.Buffer) (err error) {
 	if descriptor, err := e.getCommandDescriptor(opts); err == nil {
 		if cmds, err := buildExecCmds(descriptor); err == nil {
 			count := len(cmds)
 			if count > 0 {
-				ib := bytes.NewBuffer(inData)
-				var ob bytes.Buffer
-				var eb bytes.Buffer
-				var err error
 				if count == 1 {
-					err = runCommand(ib, &ob, &eb, cmds[0])
-				} else {
-					err = e.pipeChain.Run(ib, &ob, &eb, cmds...)
+					return runCommand(ib, ob, eb, cmds[0])
 				}
-				return ob.Bytes(), eb.Bytes(), err
+				return e.pipeChain.Run(ib, ob, eb, cmds...)
 			} else {
-				return nil, nil, errors.New("Command not found")
+				return errors.New("Command not found")
 			}
 		} else {
-			return nil, nil, err
+			return err
 		}
 	} else {
-		return nil, nil, err
+		return err
 	}
 }
 
