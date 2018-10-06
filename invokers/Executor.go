@@ -56,17 +56,17 @@ func (e *Executor) Register(name string, descriptor *CommandDescriptor) (error) 
 	return nil
 }
 
-func (e *Executor) Run(opts *CommandInvocation, inData []byte) ([]byte, []byte, error) {
+func (e *Executor) RunOnRawData(opts *CommandInvocation, inData []byte) ([]byte, []byte, error) {
 	ib := bytes.NewBuffer(inData)
 	var ob bytes.Buffer
 	var eb bytes.Buffer
-	if err := e.RunWithBuffers(ib, opts, &ob, &eb); err != nil {
+	if err := e.Run(ib, opts, &ob, &eb); err != nil {
 		return nil, nil, err
 	}
 	return ob.Bytes(), eb.Bytes(), nil
 }
 
-func (e *Executor) RunWithBuffers(ib *bytes.Buffer, opts *CommandInvocation, ob *bytes.Buffer, eb *bytes.Buffer) (err error) {
+func (e *Executor) Run(ib *bytes.Buffer, opts *CommandInvocation, ob *bytes.Buffer, eb *bytes.Buffer) (err error) {
 	if descriptor, err := e.getCommandDescriptor(opts); err == nil {
 		if cmds, err := buildExecCmds(descriptor); err == nil {
 			count := len(cmds)
@@ -87,11 +87,13 @@ func (e *Executor) RunWithBuffers(ib *bytes.Buffer, opts *CommandInvocation, ob 
 }
 
 func (e *Executor) getCommandDescriptor(opts *CommandInvocation) (*CommandDescriptor, error) {
-	if opts != nil && len(opts.CommandString) > 0 {
-		return prepareCommandDescriptor(opts.CommandString)
-	} else if len(opts.Name) > 0 {
-		if descriptor, ok := e.commands[opts.Name]; ok {
-			return descriptor, nil
+	if opts != nil {
+		if len(opts.CommandString) > 0 {
+			return prepareCommandDescriptor(opts.CommandString)
+		} else if len(opts.Name) > 0 {
+			if descriptor, ok := e.commands[opts.Name]; ok {
+				return descriptor, nil
+			}
 		}
 	}
 	if descriptor, ok := e.commands[DEFAULT_COMMAND]; ok {

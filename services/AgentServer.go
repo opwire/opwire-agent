@@ -1,6 +1,7 @@
 package services
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -55,7 +56,7 @@ func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
 
 	// starts the server by default
 	if c == nil || !c.SuppressAutoStart {
-		if _, err = s.Start(); err != nil {
+		if err = s.Start(); err != nil {
 			return nil, err
 		}
 	}
@@ -66,14 +67,13 @@ func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
 	return s, nil
 }
 
-func (s *AgentServer) Start() (*AgentServer, error) {
+func (s *AgentServer) Start() (error) {
 	// listens and waiting for TERM signal for shutting down
-	waitForTermSignal(s.httpServer)
-	return s, nil
+	return s.waitForTermSignal()
 }
 
-func (s *AgentServer) Shutdown() (*AgentServer, error) {
-	return s, nil
+func (s *AgentServer) Shutdown() (error) {
+	return nil
 }
 
 func (s *AgentServer) makeHealthCheckHandler() func(http.ResponseWriter, *http.Request) {
@@ -99,16 +99,18 @@ func (s *AgentServer) makeInvocationHandler() func(http.ResponseWriter, *http.Re
 			http.MethodPatch,
 			http.MethodDelete:
 				ci, _ := s.buildCommandInvocation(r)
-				pi, _ := s.buildCommandStdinData(r)
-				outData, errData, err := s.executor.Run(ci, pi)
+				ib, _ := s.buildCommandStdinBuffer(r)
+				var ob bytes.Buffer
+				var eb bytes.Buffer
+				err := s.executor.Run(ib, ci, &ob, &eb)
 				if err == nil {
 					w.WriteHeader(http.StatusOK)
 					w.Header().Set("Content-Type", "application/text")
-					io.WriteString(w, string(outData))
+					io.WriteString(w, string(ob.Bytes()))
 				} else {
 					w.WriteHeader(http.StatusInternalServerError)
 					w.Header().Set("Content-Type", "application/text")
-					io.WriteString(w, string(errData))
+					io.WriteString(w, string(eb.Bytes()))
 				}
 			break
 		default:
@@ -121,7 +123,7 @@ func (s *AgentServer) buildCommandInvocation(r *http.Request) (*invokers.Command
 	return &invokers.CommandInvocation{}, nil
 }
 
-func (s *AgentServer) buildCommandStdinData(r *http.Request) ([]byte, error) {
+func (s *AgentServer) buildCommandStdinBuffer(r *http.Request) (*bytes.Buffer, error) {
 	if r.Body == nil {
 		return nil, nil
 	}
@@ -133,12 +135,12 @@ func (s *AgentServer) buildCommandStdinData(r *http.Request) ([]byte, error) {
 		return nil, err
 	}
 
-	return data, nil
+	return bytes.NewBuffer(data), nil
 }
 
-func waitForTermSignal(s *http.Server) (*http.Server) {
-	s.ListenAndServe()
-	return s
+func (s *AgentServer) waitForTermSignal() (error) {
+	s.httpServer.ListenAndServe()
+	return nil
 }
 
 func buildHttpAddr(c *ServerOptions) string {
