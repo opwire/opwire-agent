@@ -6,6 +6,10 @@ import (
 )
 
 func main() {
+	if info, ok := getInfoString(); ok {
+		cmdtools.Println(info)
+	}
+
 	args, _ := cmdtools.ParseArgs()
 	
 	services.NewAgentServer(&services.ServerOptions{
