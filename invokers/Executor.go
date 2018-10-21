@@ -5,7 +5,6 @@ import(
 	"errors"
 	"io/ioutil"
 	"os/exec"
-	"strings"
 	"sync"
 	"github.com/opwire/opwire-agent/utils"
 )
@@ -128,8 +127,11 @@ func buildExecCmd(cmdString string) (*exec.Cmd, error) {
 	if len(cmdString) == 0 {
 		return nil, errors.New("Sub-command must not be empty")
 	}
-	parts := strings.Split(cmdString, " ")
-	return exec.Command(parts[0], parts[1:]...), nil
+	if parts, err := utils.ParseCmd(cmdString); err != nil {
+		return nil, err
+	} else {
+		return exec.Command(parts[0], parts[1:]...), nil
+	}
 }
 
 func runCommand(ib *bytes.Buffer, ob *bytes.Buffer, eb *bytes.Buffer, cmdObject *exec.Cmd) (err error) {
