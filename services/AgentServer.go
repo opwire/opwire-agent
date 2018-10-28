@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"github.com/opwire/opwire-agent/invokers"
 )
 
@@ -18,6 +19,7 @@ type ServerOptions struct {
 
 type AgentServer struct {
 	httpServer *http.Server
+	reqSerializer *ReqSerializer
 	stateStore *StateStore
 	executor *invokers.Executor
 	initialized bool
@@ -40,6 +42,13 @@ func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
 
 	// creates a StateStore instance
 	s.stateStore = NewStateStore()
+
+	// creates a ReqSerializer instance
+	s.reqSerializer, err = NewReqSerializer()
+
+	if err != nil {
+		return nil, err
+	}
 
 	// defines HTTP request invokers
 	mux := http.NewServeMux()
@@ -120,7 +129,15 @@ func (s *AgentServer) makeInvocationHandler() func(http.ResponseWriter, *http.Re
 }
 
 func (s *AgentServer) buildCommandInvocation(r *http.Request) (*invokers.CommandInvocation, error) {
-	return &invokers.CommandInvocation{}, nil
+	envs := os.Environ()
+	if encoded, err := s.reqSerializer.Encode(r); err == nil {
+		envs = append(envs, fmt.Sprintf("OPWIRE_REQUEST=%s", encoded))
+	} else {
+		return nil, err
+	}
+	return &invokers.CommandInvocation{
+		Envs: envs,
+	}, nil
 }
 
 func (s *AgentServer) buildCommandStdinBuffer(r *http.Request) (*bytes.Buffer, error) {

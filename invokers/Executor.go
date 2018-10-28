@@ -28,6 +28,7 @@ type CommandDescriptor struct {
 type CommandInvocation struct {
 	CommandString string
 	Name string
+	Envs []string
 }
 
 func NewExecutor(opts *ExecutorOptions) (*Executor, error) {
@@ -68,6 +69,11 @@ func (e *Executor) RunOnRawData(opts *CommandInvocation, inData []byte) ([]byte,
 func (e *Executor) Run(ib *bytes.Buffer, opts *CommandInvocation, ob *bytes.Buffer, eb *bytes.Buffer) (err error) {
 	if descriptor, err := e.getCommandDescriptor(opts); err == nil {
 		if cmds, err := buildExecCmds(descriptor); err == nil {
+			if opts.Envs != nil {
+				for _, cmd := range cmds {
+					cmd.Env = opts.Envs
+				}
+			}
 			count := len(cmds)
 			if count > 0 {
 				if count == 1 {
