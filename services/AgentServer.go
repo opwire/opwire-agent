@@ -41,7 +41,11 @@ func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
 	}
 
 	// creates a StateStore instance
-	s.stateStore = NewStateStore()
+	s.stateStore, err = NewStateStore()
+
+	if err != nil {
+		return nil, err
+	}
 
 	// creates a ReqSerializer instance
 	s.reqSerializer, err = NewReqSerializer()
