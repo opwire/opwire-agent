@@ -2,11 +2,17 @@ package services
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"sync/atomic"
+	"syscall"
+	"time"
 	"github.com/opwire/opwire-agent/invokers"
 )
 
@@ -22,6 +28,7 @@ type AgentServer struct {
 	reqSerializer *ReqSerializer
 	stateStore *StateStore
 	executor *invokers.Executor
+	listeningLock int32
 	initialized bool
 }
 
@@ -67,15 +74,15 @@ func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
 		Handler:        mux,
 	}
 
+	// marks this instance has been initialized properly
+	s.initialized = true
+
 	// starts the server by default
 	if c == nil || !c.SuppressAutoStart {
 		if err = s.Start(); err != nil {
 			return nil, err
 		}
 	}
-
-	// marks this instance has been initialized properly
-	s.initialized = true
 
 	return s, nil
 }
@@ -93,11 +100,17 @@ func (s *AgentServer) makeHealthCheckHandler() func(http.ResponseWriter, *http.R
 	return func (w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
-			w.WriteHeader(http.StatusOK)
-			w.Header().Set("Content-Type", "application/json")
-			io.WriteString(w, fmt.Sprintf(`{"alive": true}`))
+			if s.isReady() {
+				w.WriteHeader(http.StatusOK)
+				w.Header().Set("Content-Type", "application/json")
+				io.WriteString(w, fmt.Sprintf(`{"alive": true}`))
+				break
+			}
+			w.WriteHeader(http.StatusServiceUnavailable)
+			break
 		default:
 			w.WriteHeader(http.StatusMethodNotAllowed)
+			break
 		}
 	}
 }
@@ -115,17 +128,15 @@ func (s *AgentServer) makeInvocationHandler() func(http.ResponseWriter, *http.Re
 				ib, _ := s.buildCommandStdinBuffer(r)
 				var ob bytes.Buffer
 				var eb bytes.Buffer
-				err := s.executor.Run(ib, ci, &ob, &eb)
-				if err == nil {
-					w.WriteHeader(http.StatusOK)
-					w.Header().Set("Content-Type", "application/text")
-					io.WriteString(w, string(ob.Bytes()))
-				} else {
+				if err := s.executor.Run(ib, ci, &ob, &eb); err != nil {
 					w.WriteHeader(http.StatusInternalServerError)
-					w.Header().Set("Content-Type", "application/text")
+					w.Header().Set("Content-Type","text/plain")
 					io.WriteString(w, string(eb.Bytes()))
+					break
 				}
-			break
+				w.WriteHeader(http.StatusOK)
+				w.Header().Set("Content-Type", "text/plain")
+				io.WriteString(w, string(ob.Bytes()))
 		default:
 			w.WriteHeader(http.StatusMethodNotAllowed)
 		}
@@ -160,7 +171,55 @@ func (s *AgentServer) buildCommandStdinBuffer(r *http.Request) (*bytes.Buffer, e
 }
 
 func (s *AgentServer) waitForTermSignal() (error) {
-	s.httpServer.ListenAndServe()
+	closingTimeout := time.Second*5
+	idleConnections := make(chan struct{})
+
+	go func() {
+		sig := make(chan os.Signal, 1)
+		signal.Notify(sig, syscall.SIGTERM, syscall.SIGTSTP)
+		<-sig
+
+		s.lockService()
+
+		fmt.Println()
+
+		log.Printf("SIGTERM/SIGTSTP received, no new requests allowed. wait for %s\n", closingTimeout.String())
+		<-time.Tick(closingTimeout)
+
+		if err := s.httpServer.Shutdown(context.Background()); err != nil {
+			log.Printf("httpServer.Shutdown() failed: %v", err)
+		}
+
+		log.Printf("HTTP server is shutting down in: %s\n", closingTimeout.String())
+		<-time.Tick(closingTimeout)
+
+		close(idleConnections)
+	}()
+
+	go func() {
+		if err := s.httpServer.ListenAndServe(); err != http.ErrServerClosed {
+			log.Printf("httpServer.ListenAndServe() failed: %v", err)
+			close(idleConnections)
+		}
+	}()
+
+	s.unlockService()
+
+	<-idleConnections
+	return nil
+}
+
+func (s *AgentServer) isReady() bool {
+	return atomic.LoadInt32(&s.listeningLock) != 0
+}
+
+func (s *AgentServer) lockService() (error) {
+	atomic.StoreInt32(&s.listeningLock, 0)
+	return nil
+}
+
+func (s *AgentServer) unlockService() (error) {
+	atomic.StoreInt32(&s.listeningLock, 1)
 	return nil
 }
 
