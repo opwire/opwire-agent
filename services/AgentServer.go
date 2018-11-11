@@ -25,6 +25,8 @@ type ServerOptions struct {
 
 type AgentServer struct {
 	httpServer *http.Server
+	httpServeAddr string
+	httpServeMux *http.ServeMux
 	reqSerializer *ReqSerializer
 	stateStore *StateStore
 	executor *invokers.Executor
@@ -62,17 +64,12 @@ func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
 	}
 
 	// defines HTTP request invokers
-	mux := http.NewServeMux()
-
-	mux.HandleFunc("/_/health", s.makeHealthCheckHandler())
-	mux.HandleFunc("/run", s.makeInvocationHandler())
+	s.httpServeMux = http.NewServeMux()
+	s.httpServeMux.HandleFunc("/_/health", s.makeHealthCheckHandler())
+	s.httpServeMux.HandleFunc("/run", s.makeInvocationHandler())
 
 	// creates a new HTTP server
-	s.httpServer = &http.Server{
-		Addr:           buildHttpAddr(c),
-		MaxHeaderBytes: 1 << 22, // Max header of 4MB
-		Handler:        mux,
-	}
+	s.httpServeAddr = buildHttpAddr(c)
 
 	// marks this instance has been initialized properly
 	s.initialized = true
@@ -88,11 +85,42 @@ func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
 }
 
 func (s *AgentServer) Start() (error) {
+	if s.httpServer == nil {
+		s.httpServer = &http.Server{
+			Addr:           s.httpServeAddr,
+			MaxHeaderBytes: 1 << 22, // Max header of 4MB
+			Handler:        s.httpServeMux,
+		}
+	}
 	// listens and waiting for TERM signal for shutting down
-	return s.waitForTermSignal()
+	return s.listenAndServe()
 }
 
 func (s *AgentServer) Shutdown() (error) {
+	closingTimeout := time.Second * 5
+
+	defer func() {
+		s.httpServer = nil
+	}()
+
+	if s.isReady() {
+		if err := s.lockService(); err != nil {
+			log.Printf("lockService() failed: %v", err)
+		}
+
+		log.Printf("No new requests allowed, wait for %s\n", closingTimeout.String())
+		<-time.Tick(closingTimeout)
+	}
+
+	if s.httpServer != nil {
+		if err := s.httpServer.Shutdown(context.Background()); err != nil {
+			log.Printf("httpServer.Shutdown() failed: %v", err)
+		}
+
+		log.Printf("HTTP server is shutting down in: %s\n", closingTimeout.String())
+		<-time.Tick(closingTimeout)
+	}
+
 	return nil
 }
 
@@ -170,8 +198,7 @@ func (s *AgentServer) buildCommandStdinBuffer(r *http.Request) (*bytes.Buffer, e
 	return bytes.NewBuffer(data), nil
 }
 
-func (s *AgentServer) waitForTermSignal() (error) {
-	closingTimeout := time.Second*5
+func (s *AgentServer) listenAndServe() (error) {
 	idleConnections := make(chan struct{})
 
 	go func() {
@@ -179,19 +206,10 @@ func (s *AgentServer) waitForTermSignal() (error) {
 		signal.Notify(sig, syscall.SIGTERM, syscall.SIGTSTP)
 		<-sig
 
-		s.lockService()
-
 		fmt.Println()
+		log.Printf("SIGTERM/SIGTSTP received. Agent is shutting down ...\n")
 
-		log.Printf("SIGTERM/SIGTSTP received, no new requests allowed. wait for %s\n", closingTimeout.String())
-		<-time.Tick(closingTimeout)
-
-		if err := s.httpServer.Shutdown(context.Background()); err != nil {
-			log.Printf("httpServer.Shutdown() failed: %v", err)
-		}
-
-		log.Printf("HTTP server is shutting down in: %s\n", closingTimeout.String())
-		<-time.Tick(closingTimeout)
+		s.Shutdown()
 
 		close(idleConnections)
 	}()
