@@ -9,15 +9,21 @@ import(
 	"github.com/opwire/opwire-agent/utils"
 )
 
+const BLANK string = ""
 const DEFAULT_COMMAND string = "opwire-agent-default"
 
 type Executor struct {
-	commands map[string]*CommandDescriptor
+	commands map[string]*CommandEntrypoint
 	pipeChain *PipeChain
 }
 
 type ExecutorOptions struct {
 	Command CommandDescriptor
+}
+
+type CommandEntrypoint struct {
+	Default *CommandDescriptor
+	Method map[string]*CommandDescriptor
 }
 
 type CommandDescriptor struct {
@@ -35,24 +41,71 @@ func NewExecutor(opts *ExecutorOptions) (*Executor, error) {
 	e := &Executor{}
 	e.pipeChain = NewPipeChain()
 	if opts != nil {
-		if err := e.Register(DEFAULT_COMMAND, &opts.Command); err != nil {
+		if err := e.Register(&opts.Command, DEFAULT_COMMAND); err != nil {
 			return nil, err
 		}
 	}
 	return e, nil
 }
 
-func (e *Executor) Register(name string, descriptor *CommandDescriptor) (error) {
-	if e.commands == nil {
-		e.commands = make(map[string]*CommandDescriptor)
-	}
-	if descriptor != nil && len(descriptor.CommandString) > 0 {
-		if cloned, err := prepareCommandDescriptor(descriptor.CommandString); err == nil {
-			e.commands[name] = cloned
-		} else {
-			return err
+func extractNames(names []string) (string, string, error) {
+	num := len(names)
+	switch num {
+	case 0:
+		return DEFAULT_COMMAND, BLANK, nil
+	case 1:
+		if len(names[0]) == 0 {
+			return BLANK, BLANK, errors.New("Resource name must not be empty")
 		}
+		return names[0], BLANK, nil
+	default:
+		if len(names[1]) == 0 || len(names[0]) == 0 {
+			return BLANK, BLANK, errors.New("Resource/Action names must not be empty")
+		}
+		return names[0], names[1], nil
 	}
+}
+
+func (e *Executor) Register(descriptor *CommandDescriptor, names ...string) (error) {
+	if descriptor == nil {
+		return errors.New("Descriptor must not be nil")
+	}
+
+	if  len(descriptor.CommandString) == 0 {
+		return errors.New("Command must not be empty")
+	}
+
+	preparedCmd, err := prepareCommandDescriptor(descriptor.CommandString)
+	if err != nil {
+		return err
+	}
+
+	resource, action, err := extractNames(names)
+
+	if err != nil {
+		return err
+	}
+
+	if e.commands == nil {
+		e.commands = make(map[string]*CommandEntrypoint)
+	}
+
+	resourceEp, ok := e.commands[resource];
+	if !ok {
+		resourceEp = &CommandEntrypoint{}
+		resourceEp.Method = make(map[string]*CommandDescriptor)
+		e.commands[resource] = resourceEp
+	}
+
+	if action == BLANK {
+		resourceEp.Default = preparedCmd
+		for k := range resourceEp.Method {
+			delete(resourceEp.Method, k)
+		}
+	} else {
+		resourceEp.Method[action] = preparedCmd
+	}
+
 	return nil
 }
 
@@ -95,14 +148,15 @@ func (e *Executor) getCommandDescriptor(opts *CommandInvocation) (*CommandDescri
 	if opts != nil {
 		if len(opts.CommandString) > 0 {
 			return prepareCommandDescriptor(opts.CommandString)
-		} else if len(opts.Name) > 0 {
-			if descriptor, ok := e.commands[opts.Name]; ok {
-				return descriptor, nil
+		} else {
+			resourceName := DEFAULT_COMMAND
+			if len(opts.Name) > 0 {
+				resourceName = opts.Name
+			}
+			if entrypoint, ok := e.commands[resourceName]; ok {
+				return entrypoint.Default, nil
 			}
 		}
-	}
-	if descriptor, ok := e.commands[DEFAULT_COMMAND]; ok {
-		return descriptor, nil
 	}
 	return nil, errors.New("Default command has not been provided")
 }
