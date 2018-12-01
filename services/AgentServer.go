@@ -156,7 +156,8 @@ func (s *AgentServer) makeInvocationHandler() func(http.ResponseWriter, *http.Re
 				ib, _ := s.buildCommandStdinBuffer(r)
 				var ob bytes.Buffer
 				var eb bytes.Buffer
-				if err := s.executor.Run(ib, ci, &ob, &eb); err != nil {
+				_, err := s.executor.Run(ib, ci, &ob, &eb)
+				if err != nil {
 					w.WriteHeader(http.StatusInternalServerError)
 					w.Header().Set("Content-Type","text/plain")
 					io.WriteString(w, string(eb.Bytes()))
@@ -180,6 +181,7 @@ func (s *AgentServer) buildCommandInvocation(r *http.Request) (*invokers.Command
 	}
 	return &invokers.CommandInvocation{
 		Envs: envs,
+		ExecutionTimeout: time.Second * 4,
 	}, nil
 }
 

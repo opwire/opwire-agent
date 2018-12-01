@@ -18,6 +18,9 @@ func TestMakeHealthCheckHandler(t *testing.T) {
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(s.makeHealthCheckHandler())
 
+	// asserts the service is ready
+	s.unlockService()
+
 	// calls the ServeHTTP method and pass in our Request and ResponseRecorder.
 	handler.ServeHTTP(rr, req)
 

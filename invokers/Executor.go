@@ -4,8 +4,10 @@ import(
 	"bytes"
 	"errors"
 	"io/ioutil"
+	"log"
 	"os/exec"
 	"sync"
+	"time"
 	"github.com/opwire/opwire-agent/utils"
 )
 
@@ -14,7 +16,6 @@ const DEFAULT_COMMAND string = "opwire-agent-default"
 
 type Executor struct {
 	commands map[string]*CommandEntrypoint
-	pipeChain *PipeChain
 }
 
 type ExecutorOptions struct {
@@ -35,11 +36,15 @@ type CommandInvocation struct {
 	CommandString string
 	Name string
 	Envs []string
+	ExecutionTimeout time.Duration
+}
+
+type ExecutionState struct {
+	Duration time.Duration
 }
 
 func NewExecutor(opts *ExecutorOptions) (*Executor, error) {
 	e := &Executor{}
-	e.pipeChain = NewPipeChain()
 	if opts != nil {
 		if err := e.Register(&opts.Command, DEFAULT_COMMAND); err != nil {
 			return nil, err
@@ -90,7 +95,7 @@ func (e *Executor) Register(descriptor *CommandDescriptor, names ...string) (err
 		e.commands = make(map[string]*CommandEntrypoint)
 	}
 
-	resourceEp, ok := e.commands[resource];
+	resourceEp, ok := e.commands[resource]
 	if !ok {
 		resourceEp = &CommandEntrypoint{}
 		resourceEp.Method = make(map[string]*CommandDescriptor)
@@ -109,17 +114,19 @@ func (e *Executor) Register(descriptor *CommandDescriptor, names ...string) (err
 	return nil
 }
 
-func (e *Executor) RunOnRawData(opts *CommandInvocation, inData []byte) ([]byte, []byte, error) {
+func (e *Executor) RunOnRawData(opts *CommandInvocation, inData []byte) ([]byte, []byte, *ExecutionState, error) {
 	ib := bytes.NewBuffer(inData)
 	var ob bytes.Buffer
 	var eb bytes.Buffer
-	if err := e.Run(ib, opts, &ob, &eb); err != nil {
-		return nil, nil, err
+	if state, err := e.Run(ib, opts, &ob, &eb); err != nil {
+		return nil, nil, nil, err
+	} else {
+		return ob.Bytes(), eb.Bytes(), state, err
 	}
-	return ob.Bytes(), eb.Bytes(), nil
 }
 
-func (e *Executor) Run(ib *bytes.Buffer, opts *CommandInvocation, ob *bytes.Buffer, eb *bytes.Buffer) (err error) {
+func (e *Executor) Run(ib *bytes.Buffer, opts *CommandInvocation, ob *bytes.Buffer, eb *bytes.Buffer) (state *ExecutionState, err error) {
+	startTime := time.Now()
 	if descriptor, err := e.getCommandDescriptor(opts); err == nil {
 		if cmds, err := buildExecCmds(descriptor); err == nil {
 			if opts != nil && opts.Envs != nil {
@@ -129,18 +136,34 @@ func (e *Executor) Run(ib *bytes.Buffer, opts *CommandInvocation, ob *bytes.Buff
 			}
 			count := len(cmds)
 			if count > 0 {
-				if count == 1 {
-					return runCommand(ib, ob, eb, cmds[0])
+				pipeChain := &PipeChain{}
+
+				var timer *time.Timer
+				if opts.ExecutionTimeout > 0*time.Second {
+					timer = time.AfterFunc(opts.ExecutionTimeout, func() {
+						log.Printf("Execution is timeout after %s\n", opts.ExecutionTimeout)
+						pipeChain.Stop()
+					})
 				}
-				return e.pipeChain.Run(ib, ob, eb, cmds...)
+
+				err = pipeChain.Run(ib, ob, eb, cmds...)
+
+				if timer != nil {
+					timer.Stop()
+				}
+
+				state = &ExecutionState{}
+				state.Duration = time.Since(startTime)
+
+				return state, err
 			} else {
-				return errors.New("Command not found")
+				return nil, errors.New("Command not found")
 			}
 		} else {
-			return err
+			return nil, err
 		}
 	} else {
-		return err
+		return nil, err
 	}
 }
 
