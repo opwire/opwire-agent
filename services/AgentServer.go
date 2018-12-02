@@ -129,8 +129,8 @@ func (s *AgentServer) makeHealthCheckHandler() func(http.ResponseWriter, *http.R
 		switch r.Method {
 		case http.MethodGet:
 			if s.isReady() {
-				w.WriteHeader(http.StatusOK)
 				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
 				io.WriteString(w, fmt.Sprintf(`{"alive": true}`))
 				break
 			}
@@ -152,19 +152,37 @@ func (s *AgentServer) makeInvocationHandler() func(http.ResponseWriter, *http.Re
 			http.MethodPut,
 			http.MethodPatch,
 			http.MethodDelete:
-				ci, _ := s.buildCommandInvocation(r)
-				ib, _ := s.buildCommandStdinBuffer(r)
+				ci, ciErr := s.buildCommandInvocation(r)
+				if ciErr != nil {
+					w.Header().Set("X-Error-Message", ciErr.Error())
+					w.WriteHeader(http.StatusBadRequest)
+					break
+				}
+				ib, ibErr := s.buildCommandStdinBuffer(r)
+				if ibErr != nil {
+					w.Header().Set("X-Error-Message", ibErr.Error())
+					w.WriteHeader(http.StatusBadRequest)
+					break
+				}
 				var ob bytes.Buffer
 				var eb bytes.Buffer
-				_, err := s.executor.Run(ib, ci, &ob, &eb)
-				if err != nil {
-					w.WriteHeader(http.StatusInternalServerError)
+				state, err := s.executor.Run(ib, ci, &ob, &eb)
+				if state.IsTimeout {
 					w.Header().Set("Content-Type","text/plain")
+					w.WriteHeader(http.StatusRequestTimeout)
+					io.WriteString(w, "Running processes are killed")
+					break
+				}
+				if err != nil {
+					w.Header().Set("X-Error-Message", err.Error())
+					w.Header().Set("Content-Type","text/plain")
+					w.WriteHeader(http.StatusInternalServerError)
 					io.WriteString(w, string(eb.Bytes()))
 					break
 				}
-				w.WriteHeader(http.StatusOK)
+				w.Header().Set("X-Exec-Duration", fmt.Sprintf("%f", state.Duration.Seconds()))
 				w.Header().Set("Content-Type", "text/plain")
+				w.WriteHeader(http.StatusOK)
 				io.WriteString(w, string(ob.Bytes()))
 		default:
 			w.WriteHeader(http.StatusMethodNotAllowed)

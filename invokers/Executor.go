@@ -40,6 +40,7 @@ type CommandInvocation struct {
 }
 
 type ExecutionState struct {
+	IsTimeout bool
 	Duration time.Duration
 }
 
@@ -125,7 +126,7 @@ func (e *Executor) RunOnRawData(opts *CommandInvocation, inData []byte) ([]byte,
 	}
 }
 
-func (e *Executor) Run(ib *bytes.Buffer, opts *CommandInvocation, ob *bytes.Buffer, eb *bytes.Buffer) (state *ExecutionState, err error) {
+func (e *Executor) Run(ib *bytes.Buffer, opts *CommandInvocation, ob *bytes.Buffer, eb *bytes.Buffer) (*ExecutionState, error) {
 	startTime := time.Now()
 	if descriptor, err := e.getCommandDescriptor(opts); err == nil {
 		if cmds, err := buildExecCmds(descriptor); err == nil {
@@ -136,6 +137,7 @@ func (e *Executor) Run(ib *bytes.Buffer, opts *CommandInvocation, ob *bytes.Buff
 			}
 			count := len(cmds)
 			if count > 0 {
+				state := &ExecutionState{}
 				pipeChain := &PipeChain{}
 
 				var timer *time.Timer
@@ -143,16 +145,16 @@ func (e *Executor) Run(ib *bytes.Buffer, opts *CommandInvocation, ob *bytes.Buff
 					timer = time.AfterFunc(opts.ExecutionTimeout, func() {
 						log.Printf("Execution is timeout after %s\n", opts.ExecutionTimeout)
 						pipeChain.Stop()
+						state.IsTimeout = true
 					})
 				}
 
-				err = pipeChain.Run(ib, ob, eb, cmds...)
+				err := pipeChain.Run(ib, ob, eb, cmds...)
 
 				if timer != nil {
 					timer.Stop()
 				}
 
-				state = &ExecutionState{}
 				state.Duration = time.Since(startTime)
 
 				return state, err
