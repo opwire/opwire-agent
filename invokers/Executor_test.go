@@ -12,12 +12,12 @@ func TestExecutor_invokeCommand_pipeInput_stdout(t *testing.T) {
 			CommandString: "grep hello",
 		},
 	})
-	out, err, _, _ := e.RunOnRawData(nil, []byte("hello grep\ngoodbye grep"))
-	fmt.Printf("Stdout: [%s]\n", string(out))
-	fmt.Printf("Stderr: [%s]\n", string(err))
-	// assert.Equal(t, out, []byte("hello grep\n"))
-	// assert.Nil(t, err, "grep don't return anything")
-	assert.True(t, true)
+	outBytes, errBytes, _, err := e.RunOnRawData(nil, []byte("hello grep\ngoodbye grep"))
+	fmt.Printf("Stdout: [%s]\n", string(outBytes))
+	fmt.Printf("Stderr: [%s]\n", string(errBytes))
+	assert.Nil(t, err)
+	assert.Equal(t, outBytes, []byte("hello grep\n"))
+	assert.Equal(t, errBytes, []byte{})
 }
 
 func TestExecutor_invokeCommand_paramIn_stdout(t *testing.T) {

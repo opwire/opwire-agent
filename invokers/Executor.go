@@ -141,7 +141,7 @@ func (e *Executor) Run(ib *bytes.Buffer, opts *CommandInvocation, ob *bytes.Buff
 				pipeChain := &PipeChain{}
 
 				var timer *time.Timer
-				if opts.ExecutionTimeout > 0*time.Second {
+				if opts != nil && opts.ExecutionTimeout > 0*time.Second {
 					timer = time.AfterFunc(opts.ExecutionTimeout, func() {
 						log.Printf("Execution is timeout after %s\n", opts.ExecutionTimeout)
 						pipeChain.Stop()
@@ -170,18 +170,15 @@ func (e *Executor) Run(ib *bytes.Buffer, opts *CommandInvocation, ob *bytes.Buff
 }
 
 func (e *Executor) getCommandDescriptor(opts *CommandInvocation) (*CommandDescriptor, error) {
-	if opts != nil {
-		if len(opts.CommandString) > 0 {
-			return prepareCommandDescriptor(opts.CommandString)
-		} else {
-			resourceName := DEFAULT_COMMAND
-			if len(opts.Name) > 0 {
-				resourceName = opts.Name
-			}
-			if entrypoint, ok := e.commands[resourceName]; ok {
-				return entrypoint.Default, nil
-			}
-		}
+	if opts != nil && len(opts.CommandString) > 0 {
+		return prepareCommandDescriptor(opts.CommandString)
+	}
+	resourceName := DEFAULT_COMMAND
+	if opts != nil && len(opts.Name) > 0 {
+		resourceName = opts.Name
+	}
+	if entrypoint, ok := e.commands[resourceName]; ok {
+		return entrypoint.Default, nil
 	}
 	return nil, errors.New("Default command has not been provided")
 }
