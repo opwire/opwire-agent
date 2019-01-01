@@ -11,9 +11,9 @@ import (
 	"os"
 	"os/signal"
 	"sync/atomic"
-	"syscall"
 	"time"
 	"github.com/opwire/opwire-agent/invokers"
+	"github.com/opwire/opwire-agent/utils"
 )
 
 type ServerOptions struct {
@@ -222,8 +222,9 @@ func (s *AgentServer) listenAndServe() (error) {
 	idleConnections := make(chan struct{})
 
 	go func() {
+		SIGLIST := utils.ShutdownSignals()
 		sig := make(chan os.Signal, 1)
-		signal.Notify(sig, syscall.SIGTERM, syscall.SIGTSTP)
+		signal.Notify(sig, SIGLIST...)
 		<-sig
 
 		fmt.Println()
