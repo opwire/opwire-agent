@@ -3,7 +3,7 @@ SHELL = bash
 # git information
 GIT_COMMIT := $(shell git rev-parse --short HEAD)
 GIT_BRANCH := $(or $(shell git rev-parse --abbrev-ref HEAD))
-LATEST_TAG := $(shell git describe --tags --abbrev=0 --always)
+LATEST_TAG := $(shell git describe --tags --abbrev=7 --always)
 ifeq ($(GIT_BRANCH),$(LATEST_TAG))
 	GIT_BRANCH := master
 endif
@@ -18,11 +18,17 @@ built_by := developers@opwire.org
 build:
 	go build -ldflags "-X main.gitCommit=${GIT_COMMIT} -X main.builtAt='${built_at}' -X main.builtBy=${built_by}"
 
-build-all:
+build-clean:
+	rm -rf ./build/
+
+build-all: build-clean
 	mkdir -p ./build/
 	for GOOS in darwin linux windows; do \
 		for GOARCH in 386 amd64; do \
-			env GOOS=$$GOOS GOARCH=$$GOARCH go build -o ./build/opwire-agent-$$GOOS-$$GOARCH  -ldflags "-X main.gitCommit=${LATEST_TAG} -X main.builtAt='${built_at}' -X main.builtBy=${built_by}"; \
+			[[ "$$GOOS" = "windows" ]] && BIN_EXT=".exe" || BIN_EXT=""; \
+			env GOOS=$$GOOS GOARCH=$$GOARCH go build -o ./build/opwire-agent-${LATEST_TAG}-$$GOOS-$$GOARCH/opwire-agent$$BIN_EXT -ldflags "-X main.gitCommit=${LATEST_TAG} -X main.builtAt='${built_at}' -X main.builtBy=${built_by}"; \
+			zip -rjm ./build/opwire-agent-${LATEST_TAG}-$$GOOS-$$GOARCH.zip ./build/opwire-agent-${LATEST_TAG}-$$GOOS-$$GOARCH/ ; \
+			rmdir ./build/opwire-agent-${LATEST_TAG}-$$GOOS-$$GOARCH/; \
 		done; \
 	done
 
