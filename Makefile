@@ -15,19 +15,22 @@ ifeq ($(GIT_BRANCH),$(LATEST_TAG))
 GIT_BRANCH := master
 endif
 
-# go information
-GO_VERSION := $(shell go version)
-
 # date/time
 built_at := $(shell date +%FT%T%z)
 built_by := developers@opwire.org
 
+# go information
+GO_VERSION := $(shell go version)
+
+# LDFLAGS
+GO_LDFLAGS := $(shell echo "-X main.gitCommit=${GIT_COMMIT} -X main.gitTag=${LATEST_TAG} -X main.builtAt='${built_at}' -X main.builtBy=${built_by}")
+
 build-dev:
-	go build -ldflags "-X main.gitCommit=${GIT_COMMIT} -X main.gitTag=${LATEST_TAG} -X main.builtAt='${built_at}' -X main.builtBy=${built_by}"
+	go build -ldflags "${GO_LDFLAGS}"
 
 build-lab:
 ifeq ($(UNCOMMITTED),0)
-	go build -ldflags "-X main.gitCommit=${GIT_COMMIT} -X main.gitTag=${LATEST_TAG} -X main.builtAt='${built_at}' -X main.builtBy=${built_by}"
+	go build -ldflags "${GO_LDFLAGS}"
 else
 	@echo "The current code is uncommitted"
 endif
@@ -37,7 +40,7 @@ build-all: build-clean build-mkdir
 	for GOOS in darwin linux windows; do \
 		for GOARCH in 386 amd64; do \
 			[[ "$$GOOS" = "windows" ]] && BIN_EXT=".exe" || BIN_EXT=""; \
-			env GOOS=$$GOOS GOARCH=$$GOARCH go build -o ./build/opwire-agent-${LATEST_TAG}-$$GOOS-$$GOARCH/opwire-agent$$BIN_EXT -ldflags "-X main.gitCommit=${GIT_COMMIT} -X main.gitTag=${LATEST_TAG} -X main.builtAt='${built_at}' -X main.builtBy=${built_by}"; \
+			env GOOS=$$GOOS GOARCH=$$GOARCH go build -o ./build/opwire-agent-${LATEST_TAG}-$$GOOS-$$GOARCH/opwire-agent$$BIN_EXT -ldflags "${GO_LDFLAGS}"; \
 			zip -rjm ./build/opwire-agent-${LATEST_TAG}-$$GOOS-$$GOARCH.zip ./build/opwire-agent-${LATEST_TAG}-$$GOOS-$$GOARCH/ ; \
 			rmdir ./build/opwire-agent-${LATEST_TAG}-$$GOOS-$$GOARCH/; \
 		done; \
@@ -60,13 +63,13 @@ clean:
 	rm -f ./opwire-lab
 
 info:
-	@echo "Current go version: $(GO_VERSION)"
+	@echo "GO version: $(GO_VERSION)"
 	@echo "Current git branch: $(GIT_BRANCH)"
-	@echo "Current git commit: $(GIT_COMMIT)"
 	@echo "  The stable git Tag: $(STABLE_TAG)"
 	@echo "  The latest git Tag: $(LATEST_TAG)"
+	@echo "Current git commit: $(GIT_COMMIT)"
 ifeq ($(UNCOMMITTED),0)
-	@echo "Current git has been committed"
+	@echo "Current change has committed"
 else
-	@echo "Current git is uncommitted"
+	@echo "Current change is uncommitted"
 endif
