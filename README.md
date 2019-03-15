@@ -4,7 +4,7 @@ Program `opwire-agent` is a simple command line wrapper. It receives a request f
 
 ## Architecture
 
-![Architecture](https://raw.github.com/devebot/codetags/master/docs/assets/images/codetags-architecture.png)
+![Architecture](https://raw.github.com/opwire/opwire-agent/master/docs/assets/images/arch.png)
 
 ## Command line programs
 
