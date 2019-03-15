@@ -32,17 +32,18 @@ build-lab:
 ifeq ($(UNCOMMITTED),0)
 	go build -ldflags "${GO_LDFLAGS}"
 else
-	@echo "The current code is uncommitted"
+	@echo "Please commit all of changes before build a LAB edition"
 endif
 
 ifeq ($(shell [[ $(UNCOMMITTED) -eq 0 && $(LATEST_TAG) = $(STABLE_TAG) ]] && echo 2),2)
 build-all: build-clean build-mkdir
 	for GOOS in darwin linux windows; do \
 		for GOARCH in 386 amd64; do \
+			ARTIFACT_NAME=opwire-agent-${LATEST_TAG}-$$GOOS-$$GOARCH; \
 			[[ "$$GOOS" = "windows" ]] && BIN_EXT=".exe" || BIN_EXT=""; \
-			env GOOS=$$GOOS GOARCH=$$GOARCH go build -o ./build/opwire-agent-${LATEST_TAG}-$$GOOS-$$GOARCH/opwire-agent$$BIN_EXT -ldflags "${GO_LDFLAGS}"; \
-			zip -rjm ./build/opwire-agent-${LATEST_TAG}-$$GOOS-$$GOARCH.zip ./build/opwire-agent-${LATEST_TAG}-$$GOOS-$$GOARCH/ ; \
-			rmdir ./build/opwire-agent-${LATEST_TAG}-$$GOOS-$$GOARCH/; \
+			env GOOS=$$GOOS GOARCH=$$GOARCH go build -o ./build/$$ARTIFACT_NAME/opwire-agent$$BIN_EXT -ldflags "${GO_LDFLAGS}"; \
+			zip -rjm ./build/$$ARTIFACT_NAME.zip ./build/$$ARTIFACT_NAME/ ; \
+			rmdir ./build/$$ARTIFACT_NAME/; \
 		done; \
 	done
 else
@@ -56,7 +57,7 @@ build-clean:
 build-mkdir:
 	mkdir -p ./build/
 
-clean:
+clean: build-clean
 	go clean ./...
 	find . -name \*~ | xargs -r rm -f
 	rm -f ./opwire-agent
