@@ -3,6 +3,7 @@ package services
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -16,11 +17,17 @@ import (
 	"github.com/opwire/opwire-agent/utils"
 )
 
+type ServerEdition struct {
+	Revision string		`json:"revision"`
+	Version string		`json:"version"`
+}
+
 type ServerOptions struct {
 	Host string
 	Port uint
 	CommandString string
 	SuppressAutoStart bool
+	Edition ServerEdition
 }
 
 type AgentServer struct {
@@ -32,9 +39,14 @@ type AgentServer struct {
 	executor *invokers.Executor
 	listeningLock int32
 	initialized bool
+	edition *ServerEdition
 }
 
 func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
+	if c == nil {
+		c = &ServerOptions{}
+	}
+
 	// creates a new server instance
 	s = &AgentServer{}
 
@@ -74,8 +86,11 @@ func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
 	// marks this instance has been initialized properly
 	s.initialized = true
 
+	// marks the release manifest
+	s.edition = &c.Edition
+
 	// starts the server by default
-	if c == nil || !c.SuppressAutoStart {
+	if !c.SuppressAutoStart {
 		if err = s.Start(); err != nil {
 			return nil, err
 		}
@@ -192,6 +207,11 @@ func (s *AgentServer) makeInvocationHandler() func(http.ResponseWriter, *http.Re
 
 func (s *AgentServer) buildCommandInvocation(r *http.Request) (*invokers.CommandInvocation, error) {
 	envs := os.Environ()
+	if s.edition != nil {
+		if str, err := json.Marshal(s.edition); err == nil {
+			envs = append(envs, fmt.Sprintf("OPWIRE_EDITION=%s", str))
+		}
+	}
 	if encoded, err := s.reqSerializer.Encode(r); err == nil {
 		envs = append(envs, fmt.Sprintf("OPWIRE_REQUEST=%s", encoded))
 	} else {

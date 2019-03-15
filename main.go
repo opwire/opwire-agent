@@ -16,5 +16,9 @@ func main() {
 		Host: args.Host,
 		Port: args.Port,
 		CommandString: args.CommandString,
+		Edition: services.ServerEdition {
+			Revision: gitCommit,
+			Version: gitTag,
+		},
 	})
 }
