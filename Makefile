@@ -32,9 +32,8 @@ else
 	@echo "The current code is uncommitted"
 endif
 
-ifeq ($(LATEST_TAG),$(STABLE_TAG) && $(UNCOMMITTED),0)
-build-all: build-clean
-	mkdir -p ./build/
+ifeq ($(shell [[ $(UNCOMMITTED) -eq 0 && $(LATEST_TAG) = $(STABLE_TAG) ]] && echo 2),2)
+build-all: build-clean build-mkdir
 	for GOOS in darwin linux windows; do \
 		for GOARCH in 386 amd64; do \
 			[[ "$$GOOS" = "windows" ]] && BIN_EXT=".exe" || BIN_EXT=""; \
@@ -43,10 +42,16 @@ build-all: build-clean
 			rmdir ./build/opwire-agent-${LATEST_TAG}-$$GOOS-$$GOARCH/; \
 		done; \
 	done
+else
+build-all:
+	@echo "Please commit all of changes and make a tag before build releases"
 endif
 
 build-clean:
 	rm -rf ./build/
+
+build-mkdir:
+	mkdir -p ./build/
 
 clean:
 	go clean ./...
@@ -61,7 +66,7 @@ info:
 	@echo "  The stable git Tag: $(STABLE_TAG)"
 	@echo "  The latest git Tag: $(LATEST_TAG)"
 ifeq ($(UNCOMMITTED),0)
-	@echo "Current git has been uncommitted"
+	@echo "Current git has been committed"
 else
 	@echo "Current git is uncommitted"
 endif
