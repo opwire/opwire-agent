@@ -4,6 +4,8 @@ import (
 	"fmt"
 )
 
+const artifactId string = "opwire-agent"
+
 var (
 	gitCommit string
 	gitTag string
@@ -13,7 +15,7 @@ var (
 
 func getInfoString() (string, bool) {
 	ok := false
-	s := "opwire-agent |"
+	s := artifactId + " |"
 
 	position := gitTag
 	if len(position) == 0 {
