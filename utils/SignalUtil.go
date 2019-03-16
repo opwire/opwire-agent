@@ -1,5 +1,5 @@
 
-// +build !windows
+// +build !plan9,!windows
 
 package utils
 
