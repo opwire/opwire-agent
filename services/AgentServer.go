@@ -13,6 +13,7 @@ import (
 	"os/signal"
 	"sync/atomic"
 	"time"
+	"github.com/gorilla/mux"
 	"github.com/opwire/opwire-agent/invokers"
 	"github.com/opwire/opwire-agent/utils"
 )
@@ -34,7 +35,7 @@ type ServerOptions struct {
 type AgentServer struct {
 	httpServer *http.Server
 	httpServeAddr string
-	httpServeMux *http.ServeMux
+	httpServeMux *mux.Router
 	reqSerializer *ReqSerializer
 	stateStore *StateStore
 	executor *invokers.Executor
@@ -77,8 +78,9 @@ func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
 	}
 
 	// defines HTTP request invokers
-	s.httpServeMux = http.NewServeMux()
+	s.httpServeMux = mux.NewRouter()
 	s.httpServeMux.HandleFunc("/_/health", s.makeHealthCheckHandler())
+	s.httpServeMux.HandleFunc("/run/{commandId:[a-zA-Z0-9_-]*}", s.makeInvocationHandler())
 	s.httpServeMux.HandleFunc("/run", s.makeInvocationHandler())
 
 	urlPaths := utils.SortDesc(utils.Keys(c.StaticPath))
@@ -192,7 +194,7 @@ func (s *AgentServer) makeInvocationHandler() func(http.ResponseWriter, *http.Re
 				var ob bytes.Buffer
 				var eb bytes.Buffer
 				state, err := s.executor.Run(ib, ci, &ob, &eb)
-				if state.IsTimeout {
+				if state != nil && state.IsTimeout {
 					w.Header().Set("Content-Type","text/plain")
 					w.WriteHeader(http.StatusRequestTimeout)
 					io.WriteString(w, "Running processes are killed")
@@ -216,18 +218,26 @@ func (s *AgentServer) makeInvocationHandler() func(http.ResponseWriter, *http.Re
 }
 
 func (s *AgentServer) buildCommandInvocation(r *http.Request) (*invokers.CommandInvocation, error) {
+	// prepare environment variables
 	envs := os.Environ()
+	// import the release information
 	if s.edition != nil {
 		if str, err := json.Marshal(s.edition); err == nil {
 			envs = append(envs, fmt.Sprintf("OPWIRE_EDITION=%s", str))
 		}
 	}
+	// build the request query & data
 	if encoded, err := s.reqSerializer.Encode(r); err == nil {
 		envs = append(envs, fmt.Sprintf("OPWIRE_REQUEST=%s", encoded))
 	} else {
 		return nil, err
 	}
+	// extract command identifier
+	params := mux.Vars(r)
+	cmdId := params["commandId"]
+	log.Printf("Command [%s] has been invoked", cmdId)
 	return &invokers.CommandInvocation{
+		Name: cmdId,
 		Envs: envs,
 		ExecutionTimeout: time.Second * 4,
 	}, nil
@@ -235,7 +245,7 @@ func (s *AgentServer) buildCommandInvocation(r *http.Request) (*invokers.Command
 
 func (s *AgentServer) buildCommandStdinBuffer(r *http.Request) (*bytes.Buffer, error) {
 	if r.Body == nil {
-		return nil, nil
+		return bytes.NewBuffer(nil), nil
 	}
 
 	defer r.Body.Close()

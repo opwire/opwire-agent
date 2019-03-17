@@ -39,3 +39,9 @@ func TestMakeHealthCheckHandler(t *testing.T) {
 			rr.Body.String(), expected)
 	}
 }
+
+func executeRequest(s *AgentServer, req *http.Request) *httptest.ResponseRecorder {
+	rr := httptest.NewRecorder()
+	s.httpServeMux.ServeHTTP(rr, req)
+	return rr
+}

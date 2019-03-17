@@ -1,6 +1,7 @@
 package invokers
 
 import(
+	"fmt"
 	"bytes"
 	"errors"
 	"io/ioutil"
@@ -180,7 +181,7 @@ func (e *Executor) getCommandDescriptor(opts *CommandInvocation) (*CommandDescri
 	if entrypoint, ok := e.commands[resourceName]; ok {
 		return entrypoint.Default, nil
 	}
-	return nil, errors.New("Default command has not been provided")
+	return nil, fmt.Errorf("Command [%s] not found", resourceName)
 }
 
 func prepareCommandDescriptor(cmdString string) (*CommandDescriptor, error) {
