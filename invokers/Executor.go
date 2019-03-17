@@ -3,7 +3,6 @@ package invokers
 import(
 	"fmt"
 	"bytes"
-	"errors"
 	"io/ioutil"
 	"log"
 	"os/exec"
@@ -62,12 +61,12 @@ func extractNames(names []string) (string, string, error) {
 		return DEFAULT_COMMAND, BLANK, nil
 	case 1:
 		if len(names[0]) == 0 {
-			return BLANK, BLANK, errors.New("Resource name must not be empty")
+			return BLANK, BLANK, fmt.Errorf("Resource name must not be empty")
 		}
 		return names[0], BLANK, nil
 	default:
 		if len(names[1]) == 0 || len(names[0]) == 0 {
-			return BLANK, BLANK, errors.New("Resource/Action names must not be empty")
+			return BLANK, BLANK, fmt.Errorf("Resource/Action names must not be empty")
 		}
 		return names[0], names[1], nil
 	}
@@ -75,11 +74,11 @@ func extractNames(names []string) (string, string, error) {
 
 func (e *Executor) Register(descriptor *CommandDescriptor, names ...string) (error) {
 	if descriptor == nil {
-		return errors.New("Descriptor must not be nil")
+		return fmt.Errorf("Descriptor must not be nil")
 	}
 
 	if  len(descriptor.CommandString) == 0 {
-		return errors.New("Command must not be empty")
+		return fmt.Errorf("Command must not be empty")
 	}
 
 	preparedCmd, err := prepareCommandDescriptor(descriptor.CommandString)
@@ -160,7 +159,7 @@ func (e *Executor) Run(ib *bytes.Buffer, opts *CommandInvocation, ob *bytes.Buff
 
 				return state, err
 			} else {
-				return nil, errors.New("Command not found")
+				return nil, fmt.Errorf("Command not found")
 			}
 		} else {
 			return nil, err
@@ -187,7 +186,7 @@ func (e *Executor) getCommandDescriptor(opts *CommandInvocation) (*CommandDescri
 func prepareCommandDescriptor(cmdString string) (*CommandDescriptor, error) {
 	descriptor := &CommandDescriptor{}
 	if len(cmdString) == 0 {
-		return descriptor, errors.New("Command must not be empty")
+		return descriptor, fmt.Errorf("Command must not be empty")
 	}
 	descriptor.CommandString = cmdString
 	descriptor.subCommands = utils.Split(descriptor.CommandString, "|")
@@ -208,7 +207,7 @@ func buildExecCmds(d *CommandDescriptor) ([]*exec.Cmd, error) {
 
 func buildExecCmd(cmdString string) (*exec.Cmd, error) {
 	if len(cmdString) == 0 {
-		return nil, errors.New("Sub-command must not be empty")
+		return nil, fmt.Errorf("Sub-command must not be empty")
 	}
 	if parts, err := utils.ParseCmd(cmdString); err != nil {
 		return nil, err

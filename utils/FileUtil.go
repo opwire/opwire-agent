@@ -22,8 +22,16 @@ func IsDir(name string) bool {
 	return false
 }
 
-func standardizeDirPath(dir string) string {
+func standardizeUrlPath(dir string) string {
 	p := path.Join("/", dir, "/")
+	if p != "/" {
+		p += "/"
+	}
+	return p
+}
+
+func standardizeDirPath(dir string) string {
+	p := path.Join(dir, "/")
 	if p != "/" {
 		p += "/"
 	}
@@ -38,7 +46,7 @@ func ParseDirMappings(paths []string) map[string]string {
 		if pairLen > 0 {
 			urlPath := "/"
 			if pairLen > 1 {
-				urlPath = standardizeDirPath(pair[1])
+				urlPath = standardizeUrlPath(pair[1])
 			}
 			mapping[urlPath] = standardizeDirPath(pair[0])
 		}
