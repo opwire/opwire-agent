@@ -26,6 +26,7 @@ type ServerOptions struct {
 	Host string
 	Port uint
 	CommandString string
+	StaticPath map[string]string
 	SuppressAutoStart bool
 	Edition ServerEdition
 }
@@ -79,6 +80,15 @@ func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
 	s.httpServeMux = http.NewServeMux()
 	s.httpServeMux.HandleFunc("/_/health", s.makeHealthCheckHandler())
 	s.httpServeMux.HandleFunc("/run", s.makeInvocationHandler())
+
+	urlPaths := utils.SortDesc(utils.Keys(c.StaticPath))
+	for _, urlPath := range urlPaths {
+		filePath := c.StaticPath[urlPath]
+		if utils.IsFileExists(filePath) {
+			log.Printf("Map [%s] -> [%s]", urlPath, filePath)
+			s.httpServeMux.Handle(urlPath, http.StripPrefix(urlPath, http.FileServer(http.Dir(filePath))))
+		}
+	}
 
 	// creates a new HTTP server
 	s.httpServeAddr = buildHttpAddr(c)

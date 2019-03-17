@@ -1,6 +1,9 @@
 package utils
 
-import "strings"
+import (
+	"sort"
+	"strings"
+)
 
 func Filter(vs []string, f func(string, int) bool) []string {
 	vsf := make([]string, 0)
@@ -29,4 +32,27 @@ func Split(str string, sep string) []string {
 		return len(s) > 0
 	})
 	return arr
+}
+
+func Keys(m map[string]string) []string {
+	keys := make([]string, 0, len(m))
+	for k, _ := range m {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
+func Reverse(arr []string) []string {
+	size := len(arr)
+	for i:=0; i<size/2; i++ {
+		tmp := arr[i]
+		arr[i] = arr[size -1 - i]
+		arr[size -1 - i] = tmp
+	}
+	return arr
+}
+
+func SortDesc(arr []string) []string {
+	sort.Strings(arr)
+	return Reverse(arr)
 }

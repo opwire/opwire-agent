@@ -10,6 +10,7 @@ type AgentCmdArgs struct {
 	Host string `short:"h" long:"host" description:"Agent server host" default:"0.0.0.0"`
 	Port uint `short:"p" long:"port" description:"Agent server port" default:"17779"`
 	CommandString string `short:"c" long:"default-command" description:"Default command string"`
+	StaticPath []string `short:"s" long:"static-path" description:"Path of static web resources"`
 }
 
 func ParseArgs() (AgentCmdArgs, error) {
