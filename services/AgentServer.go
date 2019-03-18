@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"sync/atomic"
 	"time"
 	"github.com/gorilla/mux"
@@ -89,6 +90,15 @@ func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
 			s.executor.Register(&invokers.CommandDescriptor{
 				CommandString: mapping.GlobalCommand,
 			}, cmdId)
+			if len(mapping.MethodCommand) > 0 {
+				for method, command := range mapping.MethodCommand {
+					if action, ok := normalizeMethod(method); ok {
+						s.executor.Register(&invokers.CommandDescriptor{
+							CommandString: command,
+						}, cmdId, action)
+					}
+				}
+			}
 		}
 	}
 
@@ -239,6 +249,22 @@ func (s *AgentServer) makeInvocationHandler() func(http.ResponseWriter, *http.Re
 	}
 }
 
+var ACCEPTED_METHODS []string = []string{
+	http.MethodGet,
+	http.MethodPost,
+	http.MethodPut,
+	http.MethodPatch,
+	http.MethodDelete,
+}
+
+func normalizeMethod(method string) (string, bool) {
+	name := strings.ToUpper(method)
+	if utils.Contains(ACCEPTED_METHODS, name) {
+		return name, true
+	}
+	return name, false
+}
+
 func (s *AgentServer) buildCommandInvocation(r *http.Request) (*invokers.CommandInvocation, error) {
 	// prepare environment variables
 	envs := os.Environ()
@@ -259,6 +285,7 @@ func (s *AgentServer) buildCommandInvocation(r *http.Request) (*invokers.Command
 	cmdId := params["commandId"]
 	log.Printf("Command [%s] has been invoked", cmdId)
 	return &invokers.CommandInvocation{
+		Action: r.Method,
 		Name: cmdId,
 		Envs: envs,
 		ExecutionTimeout: time.Second * 4,

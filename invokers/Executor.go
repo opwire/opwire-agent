@@ -33,6 +33,7 @@ type CommandDescriptor struct {
 }
 
 type CommandInvocation struct {
+	Action string
 	CommandString string
 	Name string
 	Envs []string
@@ -178,6 +179,9 @@ func (e *Executor) getCommandDescriptor(opts *CommandInvocation) (*CommandDescri
 		resourceName = opts.Name
 	}
 	if entrypoint, ok := e.commands[resourceName]; ok {
+		if actionCmd, found := entrypoint.Method[opts.Action]; found {
+			return actionCmd, nil
+		}
 		return entrypoint.Default, nil
 	}
 	return nil, fmt.Errorf("Command [%s] not found", resourceName)
