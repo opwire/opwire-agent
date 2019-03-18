@@ -6,7 +6,9 @@ import (
 	"strings"
 )
 
-func IsFileExists(name string) bool {
+const MAPPING_DELIMITER string = "|"
+
+func IsExists(name string) bool {
 	if _, err := os.Stat(name); err != nil {
 		if os.IsNotExist(err) {
 			return false
@@ -24,15 +26,7 @@ func IsDir(name string) bool {
 
 func standardizeUrlPath(dir string) string {
 	p := path.Join("/", dir, "/")
-	if p != "/" {
-		p += "/"
-	}
-	return p
-}
-
-func standardizeDirPath(dir string) string {
-	p := path.Join(dir, "/")
-	if p != "/" {
+	if !strings.HasSuffix(p, "/") {
 		p += "/"
 	}
 	return p
@@ -41,7 +35,7 @@ func standardizeDirPath(dir string) string {
 func ParseDirMappings(paths []string) map[string]string {
 	mapping := make(map[string]string)
 	for _, pairStr := range paths {
-		pair := strings.Split(pairStr, ":")
+		pair := strings.Split(pairStr, MAPPING_DELIMITER)
 		pairLen := len(pair)
 		if pairLen > 0 {
 			urlPath := "/"

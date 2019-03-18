@@ -3,6 +3,7 @@
 build
 docs/public
 opwire-agent
+opwire-agent.exe
 opwire-agent.iml
 opwire-lab
 *~

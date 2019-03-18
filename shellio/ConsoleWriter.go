@@ -1,4 +1,4 @@
-package cmdtools
+package shellio
 
 import (
 	"fmt"

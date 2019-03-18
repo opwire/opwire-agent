@@ -108,9 +108,9 @@ func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
 	urlPaths := utils.SortDesc(utils.Keys(c.StaticPath))
 	for _, urlPath := range urlPaths {
 		filePath := c.StaticPath[urlPath]
-		if utils.IsFileExists(filePath) {
+		if utils.IsExists(filePath) {
 			log.Printf("Map [%s] -> [%s]", urlPath, filePath)
-			s.httpServeMux.Handle(urlPath, http.StripPrefix(urlPath, http.FileServer(http.Dir(filePath))))
+			s.httpServeMux.PathPrefix(urlPath).Handler(http.StripPrefix(urlPath, http.FileServer(http.Dir(filePath))))
 		}
 	}
 

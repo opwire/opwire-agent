@@ -8,7 +8,7 @@ import (
 type Configuration struct {
 	Version string `json:"version"`
 	Unformed map[string]interface{} `json:"unformed"`
-	Mappings map[string]CommandDefinition
+	Mappings map[string]CommandDefinition `json:"mappings"`
 }
 
 type CommandDefinition struct {

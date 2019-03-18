@@ -1,17 +1,17 @@
 package main
 
 import (
-	"github.com/opwire/opwire-agent/cmdtools"
+	"github.com/opwire/opwire-agent/shellio"
 	"github.com/opwire/opwire-agent/services"
 	"github.com/opwire/opwire-agent/utils"
 )
 
 func main() {
 	if info, ok := getInfoString(); ok {
-		cmdtools.Println(info)
+		shellio.Println(info)
 	}
 
-	args, _ := cmdtools.ParseArgs()
+	args, _ := shellio.ParseArgs()
 
 	_, err := services.NewAgentServer(&services.ServerOptions{
 		Host: args.Host,
@@ -26,6 +26,6 @@ func main() {
 	})
 
 	if err != nil {
-		cmdtools.Println("Fatal: %s", err.Error())
+		shellio.Println("Fatal: %s", err.Error())
 	}
 }
