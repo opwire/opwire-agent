@@ -4,6 +4,7 @@ import (
 	"fmt"
 )
 
-func Println(s string) {
-	fmt.Printf("%s\n", s)
+func Println(format string, a ...interface{}) {
+	fmt.Printf(format, a...)
+	fmt.Println()
 }

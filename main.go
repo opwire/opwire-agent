@@ -13,9 +13,10 @@ func main() {
 
 	args, _ := cmdtools.ParseArgs()
 
-	services.NewAgentServer(&services.ServerOptions{
+	_, err := services.NewAgentServer(&services.ServerOptions{
 		Host: args.Host,
 		Port: args.Port,
+		ConfigPath: args.ConfigPath,
 		StaticPath: utils.ParseDirMappings(args.StaticPath),
 		CommandString: args.CommandString,
 		Edition: services.ServerEdition {
@@ -23,4 +24,8 @@ func main() {
 			Version: gitTag,
 		},
 	})
+
+	if err != nil {
+		cmdtools.Println("Fatal: %s", err.Error())
+	}
 }

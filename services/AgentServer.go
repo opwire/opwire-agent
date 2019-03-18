@@ -14,6 +14,7 @@ import (
 	"sync/atomic"
 	"time"
 	"github.com/gorilla/mux"
+	"github.com/opwire/opwire-agent/config"
 	"github.com/opwire/opwire-agent/invokers"
 	"github.com/opwire/opwire-agent/utils"
 )
@@ -26,6 +27,7 @@ type ServerEdition struct {
 type ServerOptions struct {
 	Host string
 	Port uint
+	ConfigPath string
 	CommandString string
 	StaticPath map[string]string
 	SuppressAutoStart bool
@@ -68,6 +70,26 @@ func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
 
 	if err != nil {
 		return nil, err
+	}
+
+	// create a new Configuration Loader
+	loader := config.NewLoader()
+
+	var conf *config.Configuration
+	if len(c.ConfigPath) > 0 {
+		conf, err = loader.Load(c.ConfigPath)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// register the commands
+	if conf != nil && conf.Mappings != nil {
+		for cmdId, mapping := range conf.Mappings {
+			s.executor.Register(&invokers.CommandDescriptor{
+				CommandString: mapping.GlobalCommand,
+			}, cmdId)
+		}
 	}
 
 	// creates a ReqSerializer instance
