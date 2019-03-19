@@ -21,7 +21,7 @@ type Executor struct {
 }
 
 type ExecutorOptions struct {
-	DefaultCommand CommandDescriptor
+	DefaultCommand *CommandDescriptor
 }
 
 type CommandEntrypoint struct {
@@ -49,9 +49,12 @@ type ExecutionState struct {
 }
 
 func NewExecutor(opts *ExecutorOptions) (*Executor, error) {
+	if opts == nil {
+		opts = &ExecutorOptions{}
+	}
 	e := &Executor{}
-	if opts != nil {
-		if err := e.Register(&opts.DefaultCommand, DEFAULT_COMMAND); err != nil {
+	if opts.DefaultCommand != nil {
+		if err := e.Register(opts.DefaultCommand, DEFAULT_COMMAND); err != nil {
 			return nil, err
 		}
 	}

@@ -18,7 +18,7 @@ func main() {
 		Port: args.Port,
 		ConfigPath: args.ConfigPath,
 		StaticPath: utils.ParseDirMappings(args.StaticPath),
-		CommandString: args.CommandString,
+		DefaultCommand: args.DefaultCommand,
 		Edition: services.ServerEdition {
 			Revision: gitCommit,
 			Version: gitTag,

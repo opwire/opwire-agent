@@ -29,7 +29,7 @@ type ServerOptions struct {
 	Host string
 	Port uint
 	ConfigPath string
-	CommandString string
+	DefaultCommand string
 	StaticPath map[string]string
 	SuppressAutoStart bool
 	Edition ServerEdition
@@ -56,11 +56,13 @@ func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
 	s = &AgentServer{}
 
 	// creates a new command executor
-	s.executor, err = invokers.NewExecutor(&invokers.ExecutorOptions{
-		DefaultCommand: invokers.CommandDescriptor{
-			CommandString: c.CommandString,
-		},
-	})
+	options := &invokers.ExecutorOptions{}
+	if len(c.DefaultCommand) > 0 {
+		options.DefaultCommand = &invokers.CommandDescriptor{
+			CommandString: c.DefaultCommand,
+		}
+	}
+	s.executor, err = invokers.NewExecutor(options)
 
 	if err != nil {
 		return nil, err
