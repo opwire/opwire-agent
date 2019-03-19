@@ -12,7 +12,7 @@ Support configuration file (`opwire-agent.cfg` or `opwire-agent.conf`) from (pri
 
 * `--config` command line argument,
 * `OPWIRE_AGENT_CONFIG_DIR` environment variable,
-* current binary opwire-agent,
+* current binary directory (i.e the folder that contained `opwire-agent`),
 * current working directory,
 * XDG configuration directory (i.e $HOME/.config/opwire-agent.conf),
 * Hidden configuration file in home directory (i.e $HOME/.opwire-agent.conf),
