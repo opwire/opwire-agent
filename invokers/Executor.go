@@ -21,7 +21,7 @@ type Executor struct {
 }
 
 type ExecutorOptions struct {
-	Command CommandDescriptor
+	DefaultCommand CommandDescriptor
 }
 
 type CommandEntrypoint struct {
@@ -36,10 +36,10 @@ type CommandDescriptor struct {
 }
 
 type CommandInvocation struct {
-	Action string
-	CommandString string
-	Name string
 	Envs []string
+	PriorCommand string
+	ResourceName string
+	MethodName string
 	ExecutionTimeout TimeSecond
 }
 
@@ -51,7 +51,7 @@ type ExecutionState struct {
 func NewExecutor(opts *ExecutorOptions) (*Executor, error) {
 	e := &Executor{}
 	if opts != nil {
-		if err := e.Register(&opts.Command, DEFAULT_COMMAND); err != nil {
+		if err := e.Register(&opts.DefaultCommand, DEFAULT_COMMAND); err != nil {
 			return nil, err
 		}
 	}
@@ -70,7 +70,7 @@ func extractNames(names []string) (string, string, error) {
 		return names[0], BLANK, nil
 	default:
 		if len(names[1]) == 0 || len(names[0]) == 0 {
-			return BLANK, BLANK, fmt.Errorf("Resource/Action names must not be empty")
+			return BLANK, BLANK, fmt.Errorf("Resource/Method names must not be empty")
 		}
 		return names[0], names[1], nil
 	}
@@ -180,16 +180,16 @@ func (e *Executor) Run(ib *bytes.Buffer, opts *CommandInvocation, ob *bytes.Buff
 }
 
 func (e *Executor) getCommandDescriptor(opts *CommandInvocation) (*CommandDescriptor, error) {
-	if opts != nil && len(opts.CommandString) > 0 {
-		return prepareCommandDescriptor(opts.CommandString)
+	if opts != nil && len(opts.PriorCommand) > 0 {
+		return prepareCommandDescriptor(opts.PriorCommand)
 	}
 	resourceName := DEFAULT_COMMAND
-	if opts != nil && len(opts.Name) > 0 {
-		resourceName = opts.Name
+	if opts != nil && len(opts.ResourceName) > 0 {
+		resourceName = opts.ResourceName
 	}
 	if entrypoint, ok := e.commands[resourceName]; ok {
-		if opts != nil && len(opts.Action) > 0 {
-			if actionCmd, found := entrypoint.Method[opts.Action]; found {
+		if opts != nil && len(opts.MethodName) > 0 {
+			if actionCmd, found := entrypoint.Method[opts.MethodName]; found {
 				return actionCmd, nil
 			}
 		}

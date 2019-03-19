@@ -9,7 +9,7 @@ import(
 func TestExecutor_Run(t *testing.T) {
 	t.Run("provide input data through stdin", func(t *testing.T) {
 		e, _ := NewExecutor(&ExecutorOptions{
-			Command: CommandDescriptor{
+			DefaultCommand: CommandDescriptor{
 				CommandString: "grep hello",
 			},
 		})
@@ -24,7 +24,7 @@ func TestExecutor_Run(t *testing.T) {
 	})
 	t.Run("run without input data", func(t *testing.T) {
 		e, _ := NewExecutor(&ExecutorOptions{
-			Command: CommandDescriptor{
+			DefaultCommand: CommandDescriptor{
 				CommandString: "pwd",
 			},
 		})

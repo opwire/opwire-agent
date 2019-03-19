@@ -21,8 +21,8 @@ import (
 )
 
 type ServerEdition struct {
-	Revision string		`json:"revision"`
-	Version string		`json:"version"`
+	Revision string   `json:"revision"`
+	Version string    `json:"version"`
 }
 
 type ServerOptions struct {
@@ -57,7 +57,7 @@ func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
 
 	// creates a new command executor
 	s.executor, err = invokers.NewExecutor(&invokers.ExecutorOptions{
-		Command: invokers.CommandDescriptor{
+		DefaultCommand: invokers.CommandDescriptor{
 			CommandString: c.CommandString,
 		},
 	})
@@ -101,12 +101,12 @@ func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
 
 	// register the commands
 	if conf != nil && conf.Mappings != nil {
-		for cmdId, mapping := range conf.Mappings {
-			s.executor.Register(mapping.Default, cmdId)
+		for resourceId, mapping := range conf.Mappings {
+			s.executor.Register(mapping.Default, resourceId)
 			if len(mapping.Method) > 0 {
 				for method, methodDescriptor := range mapping.Method {
 					if action, ok := normalizeMethod(method); ok {
-						s.executor.Register(methodDescriptor, cmdId, action)
+						s.executor.Register(methodDescriptor, resourceId, action)
 					}
 				}
 			}
@@ -123,7 +123,7 @@ func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
 	// defines HTTP request invokers
 	s.httpServeMux = mux.NewRouter()
 	s.httpServeMux.HandleFunc("/_/health", s.makeHealthCheckHandler())
-	s.httpServeMux.HandleFunc("/run/{commandId:[a-zA-Z0-9_-]*}", s.makeInvocationHandler())
+	s.httpServeMux.HandleFunc("/run/{resourceName:[a-zA-Z0-9_-]*}", s.makeInvocationHandler())
 	s.httpServeMux.HandleFunc("/run", s.makeInvocationHandler())
 
 	urlPaths := utils.SortDesc(utils.Keys(c.StaticPath))
@@ -293,12 +293,12 @@ func (s *AgentServer) buildCommandInvocation(r *http.Request) (*invokers.Command
 	}
 	// extract command identifier
 	params := mux.Vars(r)
-	cmdId := params["commandId"]
-	log.Printf("Command [%s] has been invoked", cmdId)
+	resourceId := params["resourceName"]
+	log.Printf("Command [%s] has been invoked", resourceId)
 	return &invokers.CommandInvocation{
-		Action: r.Method,
-		Name: cmdId,
 		Envs: envs,
+		ResourceName: resourceId,
+		MethodName: r.Method,
 	}, nil
 }
 
