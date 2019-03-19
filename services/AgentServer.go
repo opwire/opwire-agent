@@ -73,12 +73,27 @@ func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
 		return nil, err
 	}
 
-	// create a new Configuration Loader
-	loader := config.NewLoader()
-
+	// load configuration
 	var conf *config.Configuration
-	if len(c.ConfigPath) > 0 {
-		conf, err = loader.Load(c.ConfigPath)
+
+	// determine configuration path
+	cfgpath := c.ConfigPath
+	if len(cfgpath) > 0 {
+		log.Printf("Configuration path (provided by command line): %s", cfgpath)
+	} else {
+		var from string
+		cfgpath, from = config.GetConfigPath()
+		if len(from) == 0 {
+			log.Printf("Configuration file not found")
+		} else {
+			log.Printf("Configuration path [%s] from [%s]", cfgpath, from)
+		}
+	}
+
+	// create a new Configuration Loader
+	if len(cfgpath) > 0 {
+		loader := config.NewLoader()
+		conf, err = loader.Load(cfgpath)
 		if err != nil {
 			return nil, err
 		}
