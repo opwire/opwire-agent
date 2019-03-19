@@ -7,12 +7,11 @@ import (
 	"github.com/opwire/opwire-agent/utils"
 )
 
-const (
-	BLANK = ""
-	configDir = "opwire"
-	configFileName = "opwire-agent.conf"
-	hiddenConfigFileName = "." + configFileName
-)
+const BLANK = ""
+const configDir = "opwire"
+const configFileName = "opwire-agent"
+
+var configFileExts []string = []string{ ".cfg", ".conf", ".json" }
 
 func GetConfigPath() (string, string) {
 	for _, pos := range getConfigSeries() {
@@ -33,14 +32,16 @@ func GetConfigPath() (string, string) {
 			cfgdir = "/etc"
 		}
 		if cfgdir != BLANK {
-			cfgfile := configFileName
-			if pos == "home" {
-				cfgfile = hiddenConfigFileName
-			}
-			cfgpath = filepath.Join(cfgdir, cfgfile)
-			_, err := os.Stat(cfgpath)
-			if err == nil {
-				return cfgpath, pos
+			for _, ext := range configFileExts {
+				cfgfile := configFileName + ext
+				if pos == "home" {
+					cfgfile = "." + cfgfile
+				}
+				cfgpath = filepath.Join(cfgdir, cfgfile)
+				_, err := os.Stat(cfgpath)
+				if err == nil {
+					return cfgpath, pos
+				}
 			}
 		}
 	}
