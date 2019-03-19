@@ -39,6 +39,14 @@ Opwire development team provides a collection of command line examples in severa
 * [Command line example in R](https://github.com/opwire/sample-cmdline-R)
 * [Command line example in .NET](https://github.com/opwire/sample-cmdline-dotnet)
 
+## Contributing
+
+1. Fork it
+2. Create your feature branch (`git checkout -b your-new-feature`)
+3. Commit your changes (`git commit -am "Add some feature"`)
+4. Push to the branch (`git push origin your-new-feature`)
+5. Create new Pull Request
+
 ## License
 
 MIT

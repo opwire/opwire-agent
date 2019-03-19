@@ -14,6 +14,8 @@ import(
 const BLANK string = ""
 const DEFAULT_COMMAND string = "opwire-agent-default"
 
+type TimeSecond int
+
 type Executor struct {
 	commands map[string]*CommandEntrypoint
 }
@@ -23,12 +25,13 @@ type ExecutorOptions struct {
 }
 
 type CommandEntrypoint struct {
-	Default *CommandDescriptor
-	Method map[string]*CommandDescriptor
+	Default *CommandDescriptor `json:"main"`
+	Method map[string]*CommandDescriptor `json:"methods"`
 }
 
 type CommandDescriptor struct {
-	CommandString string
+	CommandString string `json:"command"`
+	ExecutionTimeout TimeSecond `json:"timeout"`
 	subCommands []string
 }
 
@@ -37,7 +40,7 @@ type CommandInvocation struct {
 	CommandString string
 	Name string
 	Envs []string
-	ExecutionTimeout time.Duration
+	ExecutionTimeout TimeSecond
 }
 
 type ExecutionState struct {
@@ -86,6 +89,8 @@ func (e *Executor) Register(descriptor *CommandDescriptor, names ...string) (err
 	if err != nil {
 		return err
 	}
+
+	preparedCmd.ExecutionTimeout = descriptor.ExecutionTimeout
 
 	resource, action, err := extractNames(names)
 
@@ -142,9 +147,13 @@ func (e *Executor) Run(ib *bytes.Buffer, opts *CommandInvocation, ob *bytes.Buff
 				pipeChain := &PipeChain{}
 
 				var timer *time.Timer
-				if opts != nil && opts.ExecutionTimeout > 0*time.Second {
-					timer = time.AfterFunc(opts.ExecutionTimeout, func() {
-						log.Printf("Execution is timeout after %s\n", opts.ExecutionTimeout)
+				timeout := descriptor.ExecutionTimeout
+				if opts != nil && opts.ExecutionTimeout > 0 {
+					timeout = opts.ExecutionTimeout
+				}
+				if timeout > 0 {
+					timer = time.AfterFunc(time.Second * time.Duration(timeout), func() {
+						log.Printf("Execution is timeout after %d seconds\n", timeout)
 						pipeChain.Stop()
 						state.IsTimeout = true
 					})
