@@ -6,6 +6,18 @@ Program `opwire-agent` is a simple command line wrapper. It receives a request f
 
 ![Architecture](https://raw.github.com/opwire/opwire-agent/master/docs/assets/images/arch.png)
 
+## Configuration
+
+Support configuration file (`opwire-agent.cfg` or `opwire-agent.conf`) from (priority in top-down order):
+
+* `--config` command line argument,
+* `OPWIRE_AGENT_CONFIG_DIR` environment variable,
+* current binary opwire-agent,
+* current working directory,
+* XDG configuration directory (i.e $HOME/.config/opwire-agent.conf),
+* Hidden configuration file in home directory (i.e $HOME/.opwire-agent.conf),
+* `/etc` directory (i.e /etc/opwire-agent.conf).
+
 ## Command line programs
 
 Command line programs use 5 technical mechanism to communicate with outer service (i.e `opwire-agent`):
