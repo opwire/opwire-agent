@@ -303,7 +303,6 @@ func (s *AgentServer) buildCommandInvocation(r *http.Request) (*invokers.Command
 		Action: r.Method,
 		Name: cmdId,
 		Envs: envs,
-		ExecutionTimeout: time.Second * 4,
 	}, nil
 }
 
