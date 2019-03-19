@@ -103,8 +103,8 @@ func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
 	if conf != nil && conf.Mappings != nil {
 		for resourceId, mapping := range conf.Mappings {
 			s.executor.Register(mapping.Default, resourceId)
-			if len(mapping.Method) > 0 {
-				for method, methodDescriptor := range mapping.Method {
+			if len(mapping.Methods) > 0 {
+				for method, methodDescriptor := range mapping.Methods {
 					if action, ok := normalizeMethod(method); ok {
 						s.executor.Register(methodDescriptor, resourceId, action)
 					}

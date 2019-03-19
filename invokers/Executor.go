@@ -26,7 +26,7 @@ type ExecutorOptions struct {
 
 type CommandEntrypoint struct {
 	Default *CommandDescriptor `json:"main"`
-	Method map[string]*CommandDescriptor `json:"methods"`
+	Methods map[string]*CommandDescriptor `json:"methods"`
 }
 
 type CommandDescriptor struct {
@@ -92,7 +92,7 @@ func (e *Executor) Register(descriptor *CommandDescriptor, names ...string) (err
 
 	preparedCmd.ExecutionTimeout = descriptor.ExecutionTimeout
 
-	resource, action, err := extractNames(names)
+	resourceName, methodName, err := extractNames(names)
 
 	if err != nil {
 		return err
@@ -102,20 +102,20 @@ func (e *Executor) Register(descriptor *CommandDescriptor, names ...string) (err
 		e.commands = make(map[string]*CommandEntrypoint)
 	}
 
-	resourceEp, ok := e.commands[resource]
+	entrypoint, ok := e.commands[resourceName]
 	if !ok {
-		resourceEp = &CommandEntrypoint{}
-		resourceEp.Method = make(map[string]*CommandDescriptor)
-		e.commands[resource] = resourceEp
+		entrypoint = &CommandEntrypoint{}
+		entrypoint.Methods = make(map[string]*CommandDescriptor)
+		e.commands[resourceName] = entrypoint
 	}
 
-	if action == BLANK {
-		resourceEp.Default = preparedCmd
-		for k := range resourceEp.Method {
-			delete(resourceEp.Method, k)
+	if methodName == BLANK {
+		entrypoint.Default = preparedCmd
+		for k := range entrypoint.Methods {
+			delete(entrypoint.Methods, k)
 		}
 	} else {
-		resourceEp.Method[action] = preparedCmd
+		entrypoint.Methods[methodName] = preparedCmd
 	}
 
 	return nil
@@ -189,8 +189,8 @@ func (e *Executor) getCommandDescriptor(opts *CommandInvocation) (*CommandDescri
 	}
 	if entrypoint, ok := e.commands[resourceName]; ok {
 		if opts != nil && len(opts.MethodName) > 0 {
-			if actionCmd, found := entrypoint.Method[opts.MethodName]; found {
-				return actionCmd, nil
+			if methodCmd, found := entrypoint.Methods[opts.MethodName]; found {
+				return methodCmd, nil
 			}
 		}
 		return entrypoint.Default, nil
