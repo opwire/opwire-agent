@@ -179,8 +179,10 @@ func (e *Executor) getCommandDescriptor(opts *CommandInvocation) (*CommandDescri
 		resourceName = opts.Name
 	}
 	if entrypoint, ok := e.commands[resourceName]; ok {
-		if actionCmd, found := entrypoint.Method[opts.Action]; found {
-			return actionCmd, nil
+		if opts != nil && len(opts.Action) > 0 {
+			if actionCmd, found := entrypoint.Method[opts.Action]; found {
+				return actionCmd, nil
+			}
 		}
 		return entrypoint.Default, nil
 	}
