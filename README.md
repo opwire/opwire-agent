@@ -30,6 +30,7 @@ Command line programs use 5 technical mechanism to communicate with outer servic
 
 Opwire development team provides a collection of command line examples in several programming languges:
 
+* [Command line example in Bash](https://github.com/opwire/sample-cmdline-bash)
 * [Command line example in Java](https://github.com/opwire/sample-cmdline-java)
 * [Command line example in Node.js](https://github.com/opwire/sample-cmdline-node)
 * [Command line example in PHP](https://github.com/opwire/sample-cmdline-php)
