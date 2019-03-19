@@ -29,6 +29,7 @@ type CommandEntrypoint struct {
 
 type CommandDescriptor struct {
 	CommandString string
+	ExecutionTimeout time.Duration
 	subCommands []string
 }
 
@@ -87,6 +88,8 @@ func (e *Executor) Register(descriptor *CommandDescriptor, names ...string) (err
 		return err
 	}
 
+	preparedCmd.ExecutionTimeout = descriptor.ExecutionTimeout
+
 	resource, action, err := extractNames(names)
 
 	if err != nil {
@@ -142,9 +145,13 @@ func (e *Executor) Run(ib *bytes.Buffer, opts *CommandInvocation, ob *bytes.Buff
 				pipeChain := &PipeChain{}
 
 				var timer *time.Timer
+				timeout := descriptor.ExecutionTimeout
 				if opts != nil && opts.ExecutionTimeout > 0*time.Second {
-					timer = time.AfterFunc(opts.ExecutionTimeout, func() {
-						log.Printf("Execution is timeout after %s\n", opts.ExecutionTimeout)
+					timeout = opts.ExecutionTimeout
+				}
+				if timeout > 0*time.Second {
+					timer = time.AfterFunc(timeout, func() {
+						log.Printf("Execution is timeout after %s\n", timeout)
 						pipeChain.Stop()
 						state.IsTimeout = true
 					})
