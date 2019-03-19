@@ -102,15 +102,11 @@ func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
 	// register the commands
 	if conf != nil && conf.Mappings != nil {
 		for cmdId, mapping := range conf.Mappings {
-			s.executor.Register(&invokers.CommandDescriptor{
-				CommandString: mapping.GlobalCommand,
-			}, cmdId)
-			if len(mapping.MethodCommand) > 0 {
-				for method, command := range mapping.MethodCommand {
+			s.executor.Register(mapping.Default, cmdId)
+			if len(mapping.Method) > 0 {
+				for method, methodDescriptor := range mapping.Method {
 					if action, ok := normalizeMethod(method); ok {
-						s.executor.Register(&invokers.CommandDescriptor{
-							CommandString: command,
-						}, cmdId, action)
+						s.executor.Register(methodDescriptor, cmdId, action)
 					}
 				}
 			}

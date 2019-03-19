@@ -25,13 +25,13 @@ type ExecutorOptions struct {
 }
 
 type CommandEntrypoint struct {
-	Default *CommandDescriptor
-	Method map[string]*CommandDescriptor
+	Default *CommandDescriptor `json:"main"`
+	Method map[string]*CommandDescriptor `json:"methods"`
 }
 
 type CommandDescriptor struct {
-	CommandString string
-	ExecutionTimeout TimeSecond
+	CommandString string `json:"command"`
+	ExecutionTimeout TimeSecond `json:"timeout"`
 	subCommands []string
 }
 

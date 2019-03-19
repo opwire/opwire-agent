@@ -3,17 +3,13 @@ package config
 import (
 	"encoding/json"
 	"os"
+	"github.com/opwire/opwire-agent/invokers"
 )
 
 type Configuration struct {
 	Version string `json:"version"`
+	Mappings map[string]invokers.CommandEntrypoint `json:"mappings"`
 	Unformed map[string]interface{} `json:"unformed"`
-	Mappings map[string]CommandDefinition `json:"mappings"`
-}
-
-type CommandDefinition struct {
-	GlobalCommand string `json:"command"`
-	MethodCommand map[string]string `json:"methods"`
 }
 
 type Loader struct {}
