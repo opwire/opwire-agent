@@ -27,9 +27,15 @@ Configuration in JSON pseudo-code:
 ```javascript
 {
   "version": "<VERSION_OF_OPWIRE_AGENT>",
+  "main-resource": {
+    "default": {
+      "command": "<COMMAND LINE>",
+      "timeout": 0 // no timeout by default
+    }
+  },
   "resources": {
     "<NAME_OF_RESOURCE>": {
-      "common": {
+      "default": {
         "command": "<COMMAND LINE>",
         "timeout": 30 // seconds
       }
@@ -43,16 +49,21 @@ Example:
 
 ```javascript
 {
-  "version": "v1.0.2",
+  "version": "v1.0.3",
+  "main-resource": {
+    "default": {
+      "command": "echo 'Hello opwire-agent'"
+    }
+  },
   "resources": {
     "spawn": {
-      "common": {
+      "default": {
         "command": "bash",
         "timeout": 5
       }
     },
     "ps-all": {
-      "common": {
+      "default": {
         "command": "ps -All"
       }
     }

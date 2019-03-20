@@ -12,7 +12,7 @@ import(
 )
 
 const BLANK string = ""
-const DEFAULT_COMMAND string = "default-resource"
+const MAIN_RESOURCE string = ":default-resource:"
 
 type TimeSecond int
 
@@ -25,7 +25,7 @@ type ExecutorOptions struct {
 }
 
 type CommandEntrypoint struct {
-	Common *CommandDescriptor `json:"common"`
+	Default *CommandDescriptor `json:"default"`
 	Methods map[string]*CommandDescriptor `json:"methods"`
 }
 
@@ -54,7 +54,7 @@ func NewExecutor(opts *ExecutorOptions) (*Executor, error) {
 	}
 	e := &Executor{}
 	if opts.DefaultCommand != nil {
-		if err := e.Register(opts.DefaultCommand, DEFAULT_COMMAND); err != nil {
+		if err := e.Register(opts.DefaultCommand, MAIN_RESOURCE); err != nil {
 			return nil, err
 		}
 	}
@@ -65,7 +65,7 @@ func extractNames(names []string) (string, string, error) {
 	num := len(names)
 	switch num {
 	case 0:
-		return DEFAULT_COMMAND, BLANK, nil
+		return MAIN_RESOURCE, BLANK, nil
 	case 1:
 		if len(names[0]) == 0 {
 			return BLANK, BLANK, fmt.Errorf("Resource name must not be empty")
@@ -113,7 +113,7 @@ func (e *Executor) Register(descriptor *CommandDescriptor, names ...string) (err
 	}
 
 	if methodName == BLANK {
-		entrypoint.Common = preparedCmd
+		entrypoint.Default = preparedCmd
 		for k := range entrypoint.Methods {
 			delete(entrypoint.Methods, k)
 		}
@@ -186,7 +186,7 @@ func (e *Executor) getCommandDescriptor(opts *CommandInvocation) (*CommandDescri
 	if opts != nil && len(opts.PriorCommand) > 0 {
 		return prepareCommandDescriptor(opts.PriorCommand)
 	}
-	resourceName := DEFAULT_COMMAND
+	resourceName := MAIN_RESOURCE
 	if opts != nil && len(opts.ResourceName) > 0 {
 		resourceName = opts.ResourceName
 	}
@@ -196,7 +196,7 @@ func (e *Executor) getCommandDescriptor(opts *CommandInvocation) (*CommandDescri
 				return methodCmd, nil
 			}
 		}
-		return entrypoint.Common, nil
+		return entrypoint.Default, nil
 	}
 	return nil, fmt.Errorf("Command [%s] not found", resourceName)
 }
