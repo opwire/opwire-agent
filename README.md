@@ -8,15 +8,17 @@ Program `opwire-agent` is a simple command line wrapper. It receives a request f
 
 ## Configuration
 
+### Location
+
 Support configuration file (`opwire-agent.cfg` or `opwire-agent.conf`) from (priority in top-down order):
 
 * `--config` command line argument,
 * `OPWIRE_AGENT_CONFIG_DIR` environment variable,
 * current binary directory (i.e the folder that contained `opwire-agent`),
 * current working directory,
-* XDG configuration directory (i.e $HOME/.config/opwire-agent.conf),
-* Hidden configuration file in home directory (i.e $HOME/.opwire-agent.conf),
-* `/etc` directory (i.e /etc/opwire-agent.conf).
+* XDG configuration directory (i.e `$HOME/.config/opwire-agent.conf`),
+* Hidden configuration file in home directory (i.e `$HOME/.opwire-agent.conf`),
+* `/etc` directory (i.e `/etc/opwire-agent.conf`).
 
 ## Command line programs
 

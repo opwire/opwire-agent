@@ -8,7 +8,7 @@ import (
 
 type Configuration struct {
 	Version string `json:"version"`
-	Mappings map[string]invokers.CommandEntrypoint `json:"mappings"`
+	Resources map[string]invokers.CommandEntrypoint `json:"resources"`
 	Unformed map[string]interface{} `json:"unformed"`
 }
 

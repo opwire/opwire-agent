@@ -12,12 +12,12 @@ import(
 )
 
 const BLANK string = ""
-const DEFAULT_COMMAND string = "opwire-agent-default"
+const DEFAULT_COMMAND string = "default-resource"
 
 type TimeSecond int
 
 type Executor struct {
-	commands map[string]*CommandEntrypoint
+	resources map[string]*CommandEntrypoint
 }
 
 type ExecutorOptions struct {
@@ -25,7 +25,7 @@ type ExecutorOptions struct {
 }
 
 type CommandEntrypoint struct {
-	Default *CommandDescriptor `json:"main"`
+	Common *CommandDescriptor `json:"common"`
 	Methods map[string]*CommandDescriptor `json:"methods"`
 }
 
@@ -101,19 +101,19 @@ func (e *Executor) Register(descriptor *CommandDescriptor, names ...string) (err
 		return err
 	}
 
-	if e.commands == nil {
-		e.commands = make(map[string]*CommandEntrypoint)
+	if e.resources == nil {
+		e.resources = make(map[string]*CommandEntrypoint)
 	}
 
-	entrypoint, ok := e.commands[resourceName]
+	entrypoint, ok := e.resources[resourceName]
 	if !ok {
 		entrypoint = &CommandEntrypoint{}
 		entrypoint.Methods = make(map[string]*CommandDescriptor)
-		e.commands[resourceName] = entrypoint
+		e.resources[resourceName] = entrypoint
 	}
 
 	if methodName == BLANK {
-		entrypoint.Default = preparedCmd
+		entrypoint.Common = preparedCmd
 		for k := range entrypoint.Methods {
 			delete(entrypoint.Methods, k)
 		}
@@ -190,13 +190,13 @@ func (e *Executor) getCommandDescriptor(opts *CommandInvocation) (*CommandDescri
 	if opts != nil && len(opts.ResourceName) > 0 {
 		resourceName = opts.ResourceName
 	}
-	if entrypoint, ok := e.commands[resourceName]; ok {
+	if entrypoint, ok := e.resources[resourceName]; ok {
 		if opts != nil && len(opts.MethodName) > 0 {
 			if methodCmd, found := entrypoint.Methods[opts.MethodName]; found {
 				return methodCmd, nil
 			}
 		}
-		return entrypoint.Default, nil
+		return entrypoint.Common, nil
 	}
 	return nil, fmt.Errorf("Command [%s] not found", resourceName)
 }
