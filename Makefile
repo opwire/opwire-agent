@@ -46,6 +46,18 @@ TARGET_OS_ARCH= \
 	windows/386 \
 	windows/amd64
 
+BUILD_TRIAL := $(shell [[ -n $${OPWIRE_BUILD_TRIAL} ]] && echo 1 || echo 0)
+
+ifeq ($(BUILD_TRIAL),1)
+TARGET_OS_ARCH= \
+	darwin/386 \
+	darwin/amd64 \
+	linux/386 \
+	linux/amd64 \
+	windows/386 \
+	windows/amd64
+endif
+
 build-dev:
 	go build -ldflags "${GO_LDFLAGS}"
 

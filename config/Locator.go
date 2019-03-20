@@ -13,8 +13,14 @@ const configFileName = "opwire-agent"
 
 var configFileExts []string = []string{ ".cfg", ".conf", ".json" }
 
-func GetConfigPath() (string, string) {
+func GetConfigPath(argConfigPath string) (string, string) {
 	for _, pos := range getConfigSeries() {
+		if pos == "arg" && len(argConfigPath) > 0 {
+			_, err := os.Stat(argConfigPath)
+			if err == nil {
+				return argConfigPath, pos
+			}
+		}
 		var cfgpath string
 		var cfgdir string
 		switch (pos) {
@@ -51,7 +57,7 @@ func GetConfigPath() (string, string) {
 func getConfigSeries() []string {
 	series := utils.Split(os.Getenv("OPWIRE_AGENT_CONFIG_SERIES"), ",")
 	if len(series) == 0 {
-		series = []string { "env", "bin", "cwd", "xdg", "home", "etc" }
+		series = []string { "arg", "env", "bin", "cwd", "xdg", "home", "etc" }
 	}
 	return series
 }

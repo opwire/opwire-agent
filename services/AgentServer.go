@@ -79,21 +79,11 @@ func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
 	var conf *config.Configuration
 
 	// determine configuration path
-	cfgpath := c.ConfigPath
-	if len(cfgpath) > 0 {
-		log.Printf("Configuration path (provided by command line): %s", cfgpath)
+	cfgpath, from := config.GetConfigPath(c.ConfigPath)
+	if len(from) == 0 {
+		log.Printf("Configuration file not found")
 	} else {
-		var from string
-		cfgpath, from = config.GetConfigPath()
-		if len(from) == 0 {
-			log.Printf("Configuration file not found")
-		} else {
-			log.Printf("Configuration path [%s] from [%s]", cfgpath, from)
-		}
-	}
-
-	// create a new Configuration Loader
-	if len(cfgpath) > 0 {
+		log.Printf("Configuration path [%s] from [%s]", cfgpath, from)
 		loader := config.NewLoader()
 		conf, err = loader.Load(cfgpath)
 		if err != nil {
@@ -102,7 +92,7 @@ func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
 	}
 
 	// register the main resource
-	if conf != nil {
+	if conf != nil && options.DefaultCommand == nil {
 		resource := conf.Main
 		s.executor.Register(resource.Default, invokers.MAIN_RESOURCE)
 		if len(resource.Methods) > 0 {
