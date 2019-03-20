@@ -2,6 +2,18 @@
 
 Program `opwire-agent` is a simple command line wrapper. It receives a request from a REST API client or a message queue broker and transports this request to a command line process (that is developed by any programming language). 
 
+<!-- TOC -->
+
+- [Architecture](#architecture)
+- [Configuration](#configuration)
+  - [Location](#location)
+  - [Structure](#structure)
+- [Command line programs](#command-line-programs)
+- [Contributing](#contributing)
+- [License](#license)
+
+<!-- /TOC -->
+
 ## Architecture
 
 ![Architecture](https://raw.github.com/opwire/opwire-agent/master/docs/assets/images/arch.png)
