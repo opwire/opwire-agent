@@ -12,7 +12,7 @@ endif
 
 UNCOMMITTED := $(shell [[ `git status --porcelain | wc -l` -eq 0 ]] && echo 0 || echo 1)
 
-FORCE_BUILD := $(shell [[ -n $${OPWIRE_FORCE_BUILD} ]] && echo 1)
+FORCE_BUILD := $(shell [[ -n $${OPWIRE_FORCE_BUILD} ]] && echo 1 || echo 0)
 OK_FOR_TEST := $(shell [[ $(UNCOMMITTED) -eq 0 ]] && echo 1)
 OK_FOR_RELEASE := $(shell [[ $(UNCOMMITTED) -eq 0 && $(LATEST_TAG) = $(STABLE_TAG) ]] && echo 1)
 
@@ -50,13 +50,13 @@ build-dev:
 	go build -ldflags "${GO_LDFLAGS}"
 
 build-lab:
-ifeq ($(filter 1,$(FORCE_BUILD) $(OK_FOR_TEST)),1)
+ifneq ($(filter 1,$(FORCE_BUILD) $(OK_FOR_TEST)),)
 	go build -ldflags "${GO_LDFLAGS}"
 else
 	@echo "Please commit all of changes before build a LAB edition"
 endif
 
-ifeq ($(filter 1,$(FORCE_BUILD) $(OK_FOR_RELEASE)),1)
+ifneq ($(filter 1,$(FORCE_BUILD) $(OK_FOR_RELEASE)),)
 build-all: build-clean build-mkdir
 	for TARGET in ${TARGET_OS_ARCH}; do \
 		IFS="/" read -ra OS_ARCH <<< $${TARGET}; \
