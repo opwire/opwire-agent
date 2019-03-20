@@ -20,6 +20,46 @@ Support configuration file (`opwire-agent.cfg` or `opwire-agent.conf`) from (pri
 * Hidden configuration file in home directory (i.e `$HOME/.opwire-agent.conf`),
 * `/etc` directory (i.e `/etc/opwire-agent.conf`).
 
+### Structure
+
+Configuration in JSON pseudo-code:
+
+```javascript
+{
+  "version": "<VERSION_OF_OPWIRE_AGENT>",
+  "resources": {
+    "<NAME_OF_RESOURCE>": {
+      "common": {
+        "command": "<COMMAND LINE>",
+        "timeout": 30 // seconds
+      }
+    },
+    // ...
+  }
+}
+```
+
+Example:
+
+```javascript
+{
+  "version": "v1.0.2",
+  "resources": {
+    "spawn": {
+      "common": {
+        "command": "bash",
+        "timeout": 5
+      }
+    },
+    "ps-all": {
+      "common": {
+        "command": "ps -All"
+      }
+    }
+  }
+}
+```
+
 ## Command line programs
 
 Command line programs use 5 technical mechanism to communicate with outer service (i.e `opwire-agent`):
