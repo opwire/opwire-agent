@@ -61,6 +61,10 @@ func NewExecutor(opts *ExecutorOptions) (*Executor, error) {
 	return e, nil
 }
 
+var newPipeChain func() (*PipeChain) = func() (*PipeChain) {
+	return &PipeChain{}
+}
+
 func extractNames(names []string) (string, string, error) {
 	num := len(names)
 	switch num {
@@ -147,7 +151,7 @@ func (e *Executor) Run(ib *bytes.Buffer, opts *CommandInvocation, ob *bytes.Buff
 			count := len(cmds)
 			if count > 0 {
 				state := &ExecutionState{}
-				pipeChain := &PipeChain{}
+				pipeChain := newPipeChain()
 
 				var timer *time.Timer
 				timeout := descriptor.ExecutionTimeout
