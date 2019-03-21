@@ -65,6 +65,9 @@ case $OS in
   Darwin)
     OS='darwin'
     ;;
+  MINGW*)
+    OS='windows'
+    ;;
   SunOS)
     OS='solaris'
     echo 'OS not supported'
