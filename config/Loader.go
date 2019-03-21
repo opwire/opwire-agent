@@ -14,18 +14,20 @@ type Configuration struct {
 }
 
 type Loader struct {
+	defaultFile string
 	fs afero.Fs
 }
 
-func NewLoader() (*Loader) {
+func NewLoader(defaultCfgFile string) (*Loader) {
 	l := &Loader{}
+	l.defaultFile = defaultCfgFile
 	l.fs = afero.NewOsFs()
 	return l
 }
 
-func (l *Loader) Load(file string) (*Configuration, error) {
+func (l *Loader) Load() (*Configuration, error) {
 	config := &Configuration{}
-	configFile, err := l.fs.Open(file)
+	configFile, err := l.fs.Open(l.defaultFile)
 	defer configFile.Close()
 	if err != nil {
 		return nil, err

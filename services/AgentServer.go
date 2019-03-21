@@ -89,8 +89,8 @@ func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
 		log.Printf("Configuration file not found")
 	} else {
 		log.Printf("Configuration path [%s] from [%s]", cfgpath, from)
-		loader := config.NewLoader()
-		conf, err = loader.Load(cfgpath)
+		loader := config.NewLoader(cfgpath)
+		conf, err = loader.Load()
 		if err != nil {
 			return nil, err
 		}
