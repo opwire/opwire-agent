@@ -20,6 +20,11 @@ import (
 	"github.com/opwire/opwire-agent/utils"
 )
 
+type CommandExecutor interface {
+	Register(*invokers.CommandDescriptor, ...string) (error)
+	Run(*bytes.Buffer, *invokers.CommandInvocation, *bytes.Buffer, *bytes.Buffer) (*invokers.ExecutionState, error)
+}
+
 type ServerEdition struct {
 	Revision string   `json:"revision"`
 	Version string    `json:"version"`
@@ -41,7 +46,7 @@ type AgentServer struct {
 	httpServeMux *mux.Router
 	reqSerializer *ReqSerializer
 	stateStore *StateStore
-	executor *invokers.Executor
+	executor CommandExecutor
 	listeningLock int32
 	initialized bool
 	edition *ServerEdition

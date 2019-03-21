@@ -8,7 +8,9 @@ Program `opwire-agent` is a simple command line wrapper. It receives a request f
 - [Configuration](#configuration)
   - [Location](#location)
   - [Structure](#structure)
-- [Command line programs](#command-line-programs)
+- [Cmdline programs](#cmdline-programs)
+  - [Interaction](#interaction)
+  - [Examples](#examples)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -83,7 +85,9 @@ Example:
 }
 ```
 
-## Command line programs
+## Cmdline programs
+
+### Interaction
 
 Command line programs use 5 technical mechanism to communicate with outer service (i.e `opwire-agent`):
 
@@ -91,7 +95,9 @@ Command line programs use 5 technical mechanism to communicate with outer servic
 * Command arguments;
 * Standard I/O: stdin, stdout, stderr;
 * JSON encoding, decoding;
-* Message logs (to log files);
+* Log messages (to log files);
+
+### Examples
 
 Opwire development team provides a collection of command line examples in several programming languges:
 
