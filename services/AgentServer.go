@@ -215,10 +215,8 @@ func (s *AgentServer) makeHealthCheckHandler() func(http.ResponseWriter, *http.R
 				break
 			}
 			w.WriteHeader(http.StatusServiceUnavailable)
-			break
 		default:
 			w.WriteHeader(http.StatusMethodNotAllowed)
-			break
 		}
 	}
 }
