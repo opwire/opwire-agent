@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/user"
 	"github.com/opwire/opwire-agent/utils"
+	"github.com/spf13/afero"
 )
 
 const BLANK = ""
@@ -13,10 +14,17 @@ const configFileName = "opwire-agent"
 
 var configFileExts []string = []string{ ".cfg", ".conf", ".json" }
 
-func GetConfigPath(argConfigPath string) (string, string) {
+type Locator struct{
+	fs afero.Fs
+}
+
+func (l *Locator) GetConfigPath(argConfigPath string) (string, string) {
+	if l.fs == nil {
+		panic("fs is nil")
+	}
 	for _, pos := range getConfigSeries() {
 		if pos == "arg" && len(argConfigPath) > 0 {
-			_, err := os.Stat(argConfigPath)
+			_, err := l.fs.Stat(argConfigPath)
 			if err == nil {
 				return argConfigPath, pos
 			}
@@ -44,7 +52,7 @@ func GetConfigPath(argConfigPath string) (string, string) {
 					cfgfile = "." + cfgfile
 				}
 				cfgpath = filepath.Join(cfgdir, cfgfile)
-				_, err := os.Stat(cfgpath)
+				_, err := l.fs.Stat(cfgpath)
 				if err == nil {
 					return cfgpath, pos
 				}

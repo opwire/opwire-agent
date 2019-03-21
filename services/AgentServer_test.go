@@ -11,6 +11,7 @@ func TestNewAgentServer(t *testing.T) {
 			SuppressAutoStart: true,
 		})
 
+		assert.NotNil(t, s)
 		assert.Nil(t, err)
 
 		assert.Nil(t, s.httpServer)
