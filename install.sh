@@ -63,7 +63,7 @@ case $OS in
     OS='openbsd'
     ;;
   Darwin)
-    OS='osx'
+    OS='darwin'
     ;;
   SunOS)
     OS='solaris'
