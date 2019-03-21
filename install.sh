@@ -48,28 +48,28 @@ if [ -z "${unzip_tool}" ]; then
 fi
 
 #detect the platform
-OS="`uname`"
-case $OS in
+MY_OS=`uname`
+case $MY_OS in
   Linux)
-    OS='linux'
+    MY_OS='linux'
     ;;
   FreeBSD)
-    OS='freebsd'
+    MY_OS='freebsd'
     ;;
   NetBSD)
-    OS='netbsd'
+    MY_OS='netbsd'
     ;;
   OpenBSD)
-    OS='openbsd'
+    MY_OS='openbsd'
     ;;
   Darwin)
-    OS='darwin'
+    MY_OS='darwin'
     ;;
   MINGW*)
-    OS='windows'
+    MY_OS='windows'
     ;;
   SunOS)
-    OS='solaris'
+    MY_OS='solaris'
     echo 'OS not supported'
     exit 2
     ;;
@@ -79,19 +79,19 @@ case $OS in
     ;;
 esac
 
-OS_type="`uname -m`"
-case $OS_type in
+MY_ARCH=`uname -m`
+case $MY_ARCH in
   x86_64|amd64)
-    OS_type='amd64'
+    MY_ARCH='amd64'
     ;;
   i?86|x86)
-    OS_type='386'
+    MY_ARCH='386'
     ;;
   arm*)
-    OS_type='arm'
+    MY_ARCH='arm'
     ;;
   aarch64)
-    OS_type='arm64'
+    MY_ARCH='arm64'
     ;;
   *)
     echo 'OS type not supported'
@@ -109,7 +109,7 @@ if [ -z $version ]; then
 fi
 
 # build download link
-zip_file="opwire-agent-$version-$OS-$OS_type.zip"
+zip_file="opwire-agent-$version-$MY_OS-$MY_ARCH.zip"
 download_link="https://github.com/opwire/opwire-agent/releases/download/$version/$zip_file"
 
 curl -L -O $download_link
