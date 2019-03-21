@@ -2,8 +2,8 @@ package config
 
 import (
 	"encoding/json"
-	"os"
 	"github.com/opwire/opwire-agent/invokers"
+	"github.com/spf13/afero"
 )
 
 type Configuration struct {
@@ -13,16 +13,19 @@ type Configuration struct {
 	Unformed map[string]interface{} `json:"unformed"`
 }
 
-type Loader struct {}
+type Loader struct {
+	fs afero.Fs
+}
 
 func NewLoader() (*Loader) {
 	l := &Loader{}
+	l.fs = afero.NewOsFs()
 	return l
 }
 
-func (m *Loader) Load(file string) (*Configuration, error) {
+func (l *Loader) Load(file string) (*Configuration, error) {
 	config := &Configuration{}
-	configFile, err := os.Open(file)
+	configFile, err := l.fs.Open(file)
 	defer configFile.Close()
 	if err != nil {
 		return nil, err
