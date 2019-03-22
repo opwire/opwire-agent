@@ -1,20 +1,16 @@
 package storages
 
-import (
-	"github.com/spf13/afero"
-)
+var _fs_ Fs
 
-var _fs_ afero.Fs
-
-func SetFs(newFs afero.Fs) {
+func SetFs(newFs Fs) {
 	if newFs != nil {
 		_fs_ = newFs
 	}
 }
 
-func GetFs() afero.Fs {
+func GetFs() Fs {
 	if _fs_ == nil {
-		_fs_ = afero.NewOsFs()
+		_fs_ = NewOsFs()
 	}
 	return _fs_
 }
