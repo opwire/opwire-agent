@@ -18,6 +18,7 @@ type TimeSecond int
 
 type Executor struct {
 	resources map[string]*CommandEntrypoint
+	newPipeChain func() (*PipeChain)
 }
 
 type ExecutorOptions struct {
@@ -48,6 +49,11 @@ type ExecutionState struct {
 	Duration time.Duration
 }
 
+type PipeChainRunner interface {
+	Run(ib *bytes.Buffer, ob *bytes.Buffer, eb *bytes.Buffer, chain ...*exec.Cmd) error
+	Stop()
+}
+
 func NewExecutor(opts *ExecutorOptions) (*Executor, error) {
 	if opts == nil {
 		opts = &ExecutorOptions{}
@@ -59,10 +65,6 @@ func NewExecutor(opts *ExecutorOptions) (*Executor, error) {
 		}
 	}
 	return e, nil
-}
-
-var newPipeChain func() (*PipeChain) = func() (*PipeChain) {
-	return &PipeChain{}
 }
 
 func extractNames(names []string) (string, string, error) {
@@ -81,6 +83,15 @@ func extractNames(names []string) (string, string, error) {
 		}
 		return names[0], names[1], nil
 	}
+}
+
+func (e *Executor) GetNewPipeChain() (func() *PipeChain) {
+	if e.newPipeChain == nil {
+		e.newPipeChain = func() (*PipeChain) {
+			return &PipeChain{}
+		}
+	}
+	return e.newPipeChain
 }
 
 func (e *Executor) Register(descriptor *CommandDescriptor, names ...string) (error) {
@@ -151,7 +162,8 @@ func (e *Executor) Run(ib *bytes.Buffer, opts *CommandInvocation, ob *bytes.Buff
 			count := len(cmds)
 			if count > 0 {
 				state := &ExecutionState{}
-				pipeChain := newPipeChain()
+				constructor := e.GetNewPipeChain()
+				pipeChain := constructor()
 
 				var timer *time.Timer
 				timeout := descriptor.ExecutionTimeout

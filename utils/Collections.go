@@ -69,3 +69,21 @@ func SortDesc(arr []string) []string {
 	sort.Strings(arr)
 	return Reverse(arr)
 }
+
+func FirstHasPrefix(arr []string, pre string) (string, int) {
+	for i, str := range arr {
+		if strings.HasPrefix(str, pre) {
+			return str, i
+		}
+	}
+	return "", -1
+}
+
+func FirstHasSuffix(arr []string, pre string) (string, int) {
+	for i, str := range arr {
+		if strings.HasSuffix(str, pre) {
+			return str, i
+		}
+	}
+	return "", -1
+}
