@@ -18,7 +18,7 @@ type TimeSecond int
 
 type Executor struct {
 	resources map[string]*CommandEntrypoint
-	newPipeChain func() (*PipeChain)
+	newPipeChain func() (PipeChainRunner)
 }
 
 type ExecutorOptions struct {
@@ -85,9 +85,9 @@ func extractNames(names []string) (string, string, error) {
 	}
 }
 
-func (e *Executor) GetNewPipeChain() (func() *PipeChain) {
+func (e *Executor) GetNewPipeChain() (func() PipeChainRunner) {
 	if e.newPipeChain == nil {
-		e.newPipeChain = func() (*PipeChain) {
+		e.newPipeChain = func() (PipeChainRunner) {
 			return &PipeChain{}
 		}
 	}
@@ -250,11 +250,11 @@ func buildExecCmd(cmdString string) (*exec.Cmd, error) {
 	}
 }
 
-func runCommand(ib *bytes.Buffer, ob *bytes.Buffer, eb *bytes.Buffer, cmdObject *exec.Cmd) (err error) {
+func runCommand(ib *bytes.Buffer, ob *bytes.Buffer, eb *bytes.Buffer, cmdObject *exec.Cmd) error {
 	cmdObject.Stdin = ib
 	cmdObject.Stdout = ob
 	cmdObject.Stderr = eb
-	if err = cmdObject.Start(); err != nil {
+	if err := cmdObject.Start(); err != nil {
 		return err
 	}
 	return cmdObject.Wait()

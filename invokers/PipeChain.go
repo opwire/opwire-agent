@@ -12,7 +12,7 @@ type PipeChain struct {
 	stopFlag bool
 }
 
-func (p *PipeChain) Run(ib *bytes.Buffer, ob *bytes.Buffer, eb *bytes.Buffer, chain ...*exec.Cmd) (err error) {
+func (p *PipeChain) Run(ib *bytes.Buffer, ob *bytes.Buffer, eb *bytes.Buffer, chain ...*exec.Cmd) error {
 	pipes := make([]*io.PipeWriter, len(chain)-1)
 	i := 0
 	chain[i].Stdin = ib
@@ -57,10 +57,11 @@ func (p *PipeChain) Run(ib *bytes.Buffer, ob *bytes.Buffer, eb *bytes.Buffer, ch
 		}
 	}()
 
-	if err = p.next(chain, pipes); err != nil {
+	if err := p.next(chain, pipes); err != nil {
 		// log or do something with this error
+		return err
 	}
-	return err
+	return nil
 }
 
 func (p *PipeChain) Stop() {
@@ -69,24 +70,25 @@ func (p *PipeChain) Stop() {
 	}
 }
 
-func (p *PipeChain) next(chain []*exec.Cmd, pipes []*io.PipeWriter) (err error) {
+func (p *PipeChain) next(chain []*exec.Cmd, pipes []*io.PipeWriter) error {
 	if chain[0].Process == nil {
-		if err = chain[0].Start(); err != nil {
+		if err := chain[0].Start(); err != nil {
 			return err
 		}
 	}
 	if len(chain) > 1 {
-		if err = chain[1].Start(); err != nil {
-			return err
-		}
-		defer func() {
-			if err == nil {
-				pipes[0].Close()
-				if !p.stopFlag {
-					err = p.next(chain[1:], pipes[1:])
-				}
+		if chain[1].Process == nil {
+			if err := chain[1].Start(); err != nil {
+				return err
 			}
-		}()
+		}
 	}
-	return chain[0].Wait()
+	err := chain[0].Wait()
+	if len(chain) > 1 {
+		pipes[0].Close()
+		if err == nil && !p.stopFlag {
+			return p.next(chain[1:], pipes[1:])
+		}
+	}
+	return err
 }
