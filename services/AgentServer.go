@@ -86,9 +86,16 @@ func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
 
 	// determine configuration path
 	s.configLoader = config.NewLoader(c.Edition.Version, c.ConfigPath)
-	conf, err = s.configLoader.Load()
+	conf, result, err := s.configLoader.Load()
 	if err != nil {
 		return nil, err
+	}
+	if result != nil && !result.Valid() {
+		errstrs := []string {"The configuration is not valid. Errors:"}
+		for _, desc := range result.Errors() {
+			errstrs = append(errstrs, fmt.Sprintf("%s", desc))
+		}
+		return nil, fmt.Errorf(strings.Join(errstrs, "\n - "))
 	}
 
 	// register the main resource

@@ -5,7 +5,7 @@ import (
 	"github.com/xeipuuv/gojsonschema"
 )
 
-type ConfigValidator struct {
+type Validator struct {
 	schemaLoader gojsonschema.JSONLoader
 }
 
@@ -14,13 +14,13 @@ type ValidationResult interface {
 	Errors() []gojsonschema.ResultError
 }
 
-func NewValidator() (*ConfigValidator) {
-	validator := &ConfigValidator{}
+func NewValidator() (*Validator) {
+	validator := &Validator{}
 	validator.schemaLoader = gojsonschema.NewStringLoader(configurationSchema)
 	return validator
 }
 
-func (v *ConfigValidator) Validate(cfg *Configuration) (ValidationResult, error) {
+func (v *Validator) Validate(cfg *Configuration) (ValidationResult, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("The configuration object is nil")
 	}
@@ -70,18 +70,38 @@ var configurationSchema string = `{
 			"type": "object",
 			"properties": {
 				"default": {
-					"type": "object"
+					"$ref": "#/definitions/CommandDescriptor"
 				},
 				"methods": {
-					"type": "object",
-					"patternProperties": {
-						"^GET|POST|PUT|PATCH|DELETE|[a-zA-Z]+$": {
-							"type": "object"
+					"oneOf": [
+						{
+							"type": "null"
+						},
+						{
+							"type": "object",
+							"patternProperties": {
+								"^(?i)(GET|POST|PUT|PATCH|DELETE)$": {
+									"$ref": "#/definitions/CommandDescriptor"
+								}
+							},
+							"additionalProperties": false
 						}
-					},
-					"additionalProperties": false
+					]
 				}
 			}
+		},
+		"CommandDescriptor": {
+			"type": "object",
+			"properties": {
+				"command": {
+					"type": "string"
+				},
+				"timeout": {
+					"type": "integer",
+					"minimum": 0
+				}
+			},
+			"required": [ "command" ]
 		}
 	}
 }`

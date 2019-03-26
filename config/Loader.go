@@ -18,6 +18,7 @@ type Loader struct {
 	currentVersion string
 	defaultCfgFile string
 	locator *Locator
+	validator *Validator
 }
 
 func NewLoader(currentVersion string, defaultCfgFile string) (*Loader) {
@@ -25,10 +26,20 @@ func NewLoader(currentVersion string, defaultCfgFile string) (*Loader) {
 	l.currentVersion = currentVersion
 	l.defaultCfgFile = defaultCfgFile
 	l.locator = NewLocator()
+	l.validator = NewValidator()
 	return l
 }
 
-func (l *Loader) Load() (*Configuration, error) {
+func (l *Loader) Load() (cfg *Configuration, result ValidationResult, err error) {
+	cfg, err = l.loadJson()
+	if cfg == nil || err != nil {
+		return nil, nil, err
+	}
+	result, err = l.validator.Validate(cfg)
+	return cfg, result, err
+}
+
+func (l *Loader) loadJson() (*Configuration, error) {
 	fs := storages.GetFs()
 	cfgpath, from := l.locator.GetConfigPath(l.defaultCfgFile)
 	if len(from) == 0 {
