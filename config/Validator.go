@@ -5,6 +5,8 @@ import (
 	"github.com/xeipuuv/gojsonschema"
 )
 
+const RESOURCE_NAME_PATTERN string = `[a-zA-Z][a-zA-Z0-9_-]*`
+
 type Validator struct {
 	schemaLoader gojsonschema.JSONLoader
 }
@@ -56,7 +58,7 @@ var configurationSchema string = `{
 				{
 					"type": "object",
 					"patternProperties": {
-						"^[a-zA-Z][a-zA-Z0-9_-]*$": {
+						"^` + RESOURCE_NAME_PATTERN + `$": {
 							"$ref": "#/definitions/CommandEntrypoint"
 						}
 					},

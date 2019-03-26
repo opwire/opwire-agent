@@ -136,9 +136,10 @@ func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
 
 	// defines HTTP request invokers
 	s.httpServeMux = mux.NewRouter()
-	s.httpServeMux.HandleFunc("/_/health", s.makeHealthCheckHandler())
-	s.httpServeMux.HandleFunc("/run/{resourceName:[a-zA-Z0-9_-]*}", s.makeInvocationHandler())
-	s.httpServeMux.HandleFunc("/run", s.makeInvocationHandler())
+	s.httpServeMux.HandleFunc(`/_/health`, s.makeHealthCheckHandler())
+	s.httpServeMux.HandleFunc(`/run/{resourceName:` + config.RESOURCE_NAME_PATTERN + `}`, s.makeInvocationHandler())
+	s.httpServeMux.HandleFunc(`/run/`, s.makeInvocationHandler())
+	s.httpServeMux.HandleFunc(`/run`, s.makeInvocationHandler())
 
 	urlPaths := utils.SortDesc(utils.Keys(c.StaticPath))
 	for _, urlPath := range urlPaths {
