@@ -85,7 +85,7 @@ func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
 	var conf *config.Configuration
 
 	// determine configuration path
-	s.configLoader = config.NewLoader(c.ConfigPath)
+	s.configLoader = config.NewLoader(c.Edition.Version, c.ConfigPath)
 	conf, err = s.configLoader.Load()
 	if err != nil {
 		return nil, err

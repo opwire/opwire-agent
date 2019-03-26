@@ -15,20 +15,22 @@ type Configuration struct {
 }
 
 type Loader struct {
-	defaultFile string
+	currentVersion string
+	defaultCfgFile string
 	locator *Locator
 }
 
-func NewLoader(defaultCfgFile string) (*Loader) {
+func NewLoader(currentVersion string, defaultCfgFile string) (*Loader) {
 	l := &Loader{}
-	l.defaultFile = defaultCfgFile
+	l.currentVersion = currentVersion
+	l.defaultCfgFile = defaultCfgFile
 	l.locator = NewLocator()
 	return l
 }
 
 func (l *Loader) Load() (*Configuration, error) {
 	fs := storages.GetFs()
-	cfgpath, from := l.locator.GetConfigPath(l.defaultFile)
+	cfgpath, from := l.locator.GetConfigPath(l.defaultCfgFile)
 	if len(from) == 0 {
 		log.Printf("Configuration file not found")
 		return nil, nil
