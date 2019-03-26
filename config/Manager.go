@@ -14,34 +14,34 @@ type Configuration struct {
 	Unformed map[string]interface{} `json:"unformed"`
 }
 
-type Loader struct {
+type Manager struct {
 	currentVersion string
 	defaultCfgFile string
 	locator *Locator
 	validator *Validator
 }
 
-func NewLoader(currentVersion string, defaultCfgFile string) (*Loader) {
-	l := &Loader{}
-	l.currentVersion = currentVersion
-	l.defaultCfgFile = defaultCfgFile
-	l.locator = NewLocator()
-	l.validator = NewValidator()
-	return l
+func NewManager(currentVersion string, defaultCfgFile string) (*Manager) {
+	m := &Manager{}
+	m.currentVersion = currentVersion
+	m.defaultCfgFile = defaultCfgFile
+	m.locator = NewLocator()
+	m.validator = NewValidator()
+	return m
 }
 
-func (l *Loader) Load() (cfg *Configuration, result ValidationResult, err error) {
-	cfg, err = l.loadJson()
+func (m *Manager) Load() (cfg *Configuration, result ValidationResult, err error) {
+	cfg, err = m.loadJson()
 	if cfg == nil || err != nil {
 		return nil, nil, err
 	}
-	result, err = l.validator.Validate(cfg)
+	result, err = m.validator.Validate(cfg)
 	return cfg, result, err
 }
 
-func (l *Loader) loadJson() (*Configuration, error) {
+func (m *Manager) loadJson() (*Configuration, error) {
 	fs := storages.GetFs()
-	cfgpath, from := l.locator.GetConfigPath(l.defaultCfgFile)
+	cfgpath, from := m.locator.GetConfigPath(m.defaultCfgFile)
 	if len(from) == 0 {
 		log.Printf("Configuration file not found")
 		return nil, nil

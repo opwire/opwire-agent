@@ -41,7 +41,7 @@ type ServerOptions struct {
 }
 
 type AgentServer struct {
-	configLoader *config.Loader
+	configManager *config.Manager
 	httpServer *http.Server
 	httpServeAddr string
 	httpServeMux *mux.Router
@@ -85,8 +85,8 @@ func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
 	var conf *config.Configuration
 
 	// determine configuration path
-	s.configLoader = config.NewLoader(c.Edition.Version, c.ConfigPath)
-	conf, result, err := s.configLoader.Load()
+	s.configManager = config.NewManager(c.Edition.Version, c.ConfigPath)
+	conf, result, err := s.configManager.Load()
 	if err != nil {
 		return nil, err
 	}
