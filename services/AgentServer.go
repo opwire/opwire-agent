@@ -94,11 +94,13 @@ func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
 	// register the main resource
 	if conf != nil && options.DefaultCommand == nil {
 		resource := conf.Main
-		s.executor.Register(resource.Default, invokers.MAIN_RESOURCE)
-		if len(resource.Methods) > 0 {
-			for methodName, methodDescriptor := range resource.Methods {
-				if methodId, ok := normalizeMethod(methodName); ok {
-					s.executor.Register(methodDescriptor, invokers.MAIN_RESOURCE, methodId)
+		if resource != nil {
+			s.executor.Register(resource.Default, invokers.MAIN_RESOURCE)
+			if len(resource.Methods) > 0 {
+				for methodName, methodDescriptor := range resource.Methods {
+					if methodId, ok := normalizeMethod(methodName); ok {
+						s.executor.Register(methodDescriptor, invokers.MAIN_RESOURCE, methodId)
+					}
 				}
 			}
 		}
