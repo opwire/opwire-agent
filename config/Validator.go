@@ -38,7 +38,7 @@ var configurationSchema string = `{
 	"properties": {
 		"version": {
 			"type": "string",
-			"pattern": "^(\\d+\\.)?(\\d+\\.)?(\\*|\\d+)$"
+			"pattern": "^[v]?(\\d+\\.)?(\\d+\\.)?(\\*|\\d+)$"
 		},
 		"main-resource": {
 			"oneOf": [
