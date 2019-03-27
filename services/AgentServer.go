@@ -46,6 +46,7 @@ type AgentServer struct {
 	httpServeAddr string
 	httpServeMux *mux.Router
 	reqSerializer *ReqSerializer
+	settingsEnvs []string
 	stateStore *StateStore
 	executor CommandExecutor
 	listeningLock int32
@@ -132,6 +133,21 @@ func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
 
 	if err != nil {
 		return nil, err
+	}
+
+	// transform & cache settings
+	if conf != nil && conf.Settings != nil {
+		var envs []string
+		var err error
+		if conf.SettingsFormat == "flat" {
+			envs, err = convertSettingsToFlatEnvs(OPWIRE_SETTINGS_PREFIX, conf.Settings)
+		} else {
+			envs, err = convertSettingsToJsonEnvs(OPWIRE_SETTINGS_PREFIX, conf.Settings)
+		}
+		if err != nil {
+			return nil, err
+		}
+		s.settingsEnvs = envs
 	}
 
 	// defines HTTP request invokers
@@ -290,29 +306,43 @@ func normalizeMethod(method string) (string, bool) {
 }
 
 func (s *AgentServer) buildCommandInvocation(r *http.Request) (*invokers.CommandInvocation, error) {
+	// extract command identifier
+	params := mux.Vars(r)
+	resourceName := params["resourceName"]
+	methodName := r.Method
+	log.Printf("Command [%s#%s] has been invoked", resourceName, methodName)
 	// prepare environment variables
 	envs := os.Environ()
 	// import the release information
 	if s.edition != nil {
 		if str, err := json.Marshal(s.edition); err == nil {
-			envs = append(envs, fmt.Sprintf("OPWIRE_EDITION=%s", str))
+			envs = append(envs, fmt.Sprintf("%s=%s", OPWIRE_EDITION_PREFIX, str))
 		}
 	}
 	// build the request query & data
 	if encoded, err := s.reqSerializer.Encode(r); err == nil {
-		envs = append(envs, fmt.Sprintf("OPWIRE_REQUEST=%s", encoded))
+		envs = append(envs, fmt.Sprintf("%s=%s", OPWIRE_REQUEST_PREFIX, encoded))
 	} else {
 		return nil, err
 	}
-	// extract command identifier
-	params := mux.Vars(r)
-	resourceId := params["resourceName"]
-	log.Printf("Command [%s] has been invoked", resourceId)
+	// prepare command settings
+	envs, _ = s.fillSettingsFromCache(resourceName, methodName, envs)
+	// return the CommandInvocation reference
 	return &invokers.CommandInvocation{
 		Envs: envs,
-		ResourceName: resourceId,
-		MethodName: r.Method,
+		ResourceName: resourceName,
+		MethodName: methodName,
 	}, nil
+}
+
+func (s *AgentServer) fillSettingsFromCache(resourceName string, methodName string, envs []string) ([]string, error) {
+	settings := s.settingsEnvs
+	if settings != nil {
+		for _, item := range settings {
+			envs = append(envs, item)
+		}
+	}
+	return envs, nil
 }
 
 func (s *AgentServer) buildCommandStdinBuffer(r *http.Request) (*bytes.Buffer, error) {
@@ -374,6 +404,29 @@ func (s *AgentServer) unlockService() (error) {
 	return nil
 }
 
+func convertSettingsToJsonEnvs(prefix string, settings map[string]interface{}) ([]string, error) {
+	data, err := json.Marshal(settings)
+	if err != nil {
+		return nil, err
+	}
+	return []string{fmt.Sprintf("%s=%s", prefix, data)}, nil
+}
+
+func convertSettingsToFlatEnvs(prefix string, settings map[string]interface{}) ([]string, error) {
+	pairs, err := utils.Flatten(prefix, settings)
+	if err != nil {
+		return nil, err
+	}
+	list := make([]string, 0, len(pairs))
+	for key, val := range pairs {
+		if val != nil {
+			item := fmt.Sprintf("%s=%v", key, val)
+			list = append(list, item)
+		}
+	}
+	return list, nil
+}
+
 func buildHttpAddr(c *ServerOptions) string {
 	port := DEFAULT_PORT
 	if c.Port > 0 {
@@ -383,3 +436,6 @@ func buildHttpAddr(c *ServerOptions) string {
 }
 
 const DEFAULT_PORT uint = 17779
+const OPWIRE_EDITION_PREFIX string = "OPWIRE_EDITION"
+const OPWIRE_REQUEST_PREFIX string = "OPWIRE_REQUEST"
+const OPWIRE_SETTINGS_PREFIX string = "OPWIRE_SETTINGS"

@@ -11,7 +11,8 @@ type Configuration struct {
 	Version string `json:"version"`
 	Main *invokers.CommandEntrypoint `json:"main-resource"`
 	Resources map[string]invokers.CommandEntrypoint `json:"resources"`
-	Unformed map[string]interface{} `json:"unformed"`
+	Settings map[string]interface{} `json:"settings"`
+	SettingsFormat string `json:"settings-format"`
 }
 
 type Manager struct {
