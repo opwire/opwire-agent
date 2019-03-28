@@ -122,9 +122,9 @@ func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
 
 	// defines HTTP request invokers
 	s.httpServeMux = mux.NewRouter()
-	s.httpServeMux.HandleFunc(`/_/health`, s.makeHealthCheckHandler())
-	s.httpServeMux.HandleFunc(`/_/lock`, s.makeLockServiceHandler(true))
-	s.httpServeMux.HandleFunc(`/_/unlock`, s.makeLockServiceHandler(false))
+	s.httpServeMux.HandleFunc(CTRL_ROOTURL + `health`, s.makeHealthCheckHandler())
+	s.httpServeMux.HandleFunc(CTRL_ROOTURL + `lock`, s.makeLockServiceHandler(true))
+	s.httpServeMux.HandleFunc(CTRL_ROOTURL + `unlock`, s.makeLockServiceHandler(false))
 	s.httpServeMux.HandleFunc(`/run/{resourceName:` + config.RESOURCE_NAME_PATTERN + `}`, s.makeInvocationHandler())
 	s.httpServeMux.HandleFunc(`/run/`, s.makeInvocationHandler())
 	s.httpServeMux.HandleFunc(`/run`, s.makeInvocationHandler())
@@ -410,6 +410,7 @@ func buildHttpAddr(c *ServerOptions) string {
 	return fmt.Sprintf("%s:%d", c.Host, port)
 }
 
+const CTRL_ROOTURL string = `/_/`
 const DEFAULT_PORT uint = 17779
 const OPWIRE_EDITION_PREFIX string = "OPWIRE_EDITION"
 const OPWIRE_REQUEST_PREFIX string = "OPWIRE_REQUEST"
