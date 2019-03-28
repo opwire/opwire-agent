@@ -22,6 +22,7 @@ import (
 
 type CommandExecutor interface {
 	Register(*invokers.CommandDescriptor, ...string) (error)
+	StoreSettings(prefix string, settings map[string]interface{}, format string, resourceName string) (error)
 	Run(*bytes.Buffer, *invokers.CommandInvocation, *bytes.Buffer, *bytes.Buffer) (*invokers.ExecutionState, error)
 }
 
@@ -46,7 +47,6 @@ type AgentServer struct {
 	httpServeAddr string
 	httpServeMux *mux.Router
 	reqSerializer *ReqSerializer
-	settingsEnvs []string
 	stateStore *StateStore
 	executor CommandExecutor
 	listeningLock int32
@@ -101,15 +101,15 @@ func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
 
 	// register the main resource
 	if conf != nil && options.DefaultCommand == nil {
-		resourceId := invokers.MAIN_RESOURCE
+		resourceName := invokers.MAIN_RESOURCE
 		resource := conf.Main
-		s.importResource(resourceId, resource, conf.Settings, conf.SettingsFormat)
+		s.importResource(resourceName, resource, conf.Settings, conf.SettingsFormat)
 	}
 
 	// register the commands
 	if conf != nil && conf.Resources != nil {
-		for resourceId, resource := range conf.Resources {
-			s.importResource(resourceId, &resource, conf.Settings, conf.SettingsFormat)
+		for resourceName, resource := range conf.Resources {
+			s.importResource(resourceName, &resource, conf.Settings, conf.SettingsFormat)
 		}
 	}
 
@@ -118,13 +118,6 @@ func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
 
 	if err != nil {
 		return nil, err
-	}
-
-	// transform & cache settings
-	if conf != nil && conf.Settings != nil {
-		if envs, err := utils.TransformSettingsToEnvs(OPWIRE_SETTINGS_PREFIX, conf.Settings, conf.SettingsFormat); err == nil {
-			s.settingsEnvs = envs
-		} 
 	}
 
 	// defines HTTP request invokers
@@ -202,16 +195,24 @@ func (s *AgentServer) Shutdown() (error) {
 	return nil
 }
 
-func (s *AgentServer) importResource(resourceId string, resource *invokers.CommandEntrypoint,
+func (s *AgentServer) importResource(resourceName string, resource *invokers.CommandEntrypoint,
 		settings map[string]interface{}, format string) {
 	if resource != nil {
-		s.executor.Register(resource.Default, resourceId)
+		s.executor.Register(resource.Default, resourceName)
 		if len(resource.Methods) > 0 {
 			for methodName, methodDescriptor := range resource.Methods {
 				if methodId, ok := normalizeMethod(methodName); ok {
-					s.executor.Register(methodDescriptor, resourceId, methodId)
+					s.executor.Register(methodDescriptor, resourceName, methodId)
 				}
 			}
+		}
+		if privSettings, err := utils.CombineSettings(resource.Settings, settings); err == nil {
+			fmt.Printf("------------------------ settings: %v\n", privSettings)
+			privFormat := resource.SettingsFormat
+			if len(privFormat) == 0 {
+				privFormat = format
+			}
+			s.executor.StoreSettings(OPWIRE_SETTINGS_PREFIX, privSettings, privFormat, resourceName)
 		}
 	}
 }
@@ -316,24 +317,12 @@ func (s *AgentServer) buildCommandInvocation(r *http.Request) (*invokers.Command
 	} else {
 		return nil, err
 	}
-	// prepare command settings
-	envs, _ = s.fillSettingsFromCache(resourceName, methodName, envs)
 	// return the CommandInvocation reference
 	return &invokers.CommandInvocation{
 		Envs: envs,
 		ResourceName: resourceName,
 		MethodName: methodName,
 	}, nil
-}
-
-func (s *AgentServer) fillSettingsFromCache(resourceName string, methodName string, envs []string) ([]string, error) {
-	settings := s.settingsEnvs
-	if settings != nil {
-		for _, item := range settings {
-			envs = append(envs, item)
-		}
-	}
-	return envs, nil
 }
 
 func (s *AgentServer) buildCommandStdinBuffer(r *http.Request) (*bytes.Buffer, error) {

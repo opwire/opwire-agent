@@ -3,7 +3,23 @@ package utils
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/imdario/mergo"
 )
+
+func CombineSettings(resourceSettings map[string]interface{}, sharedSettings map[string]interface{}) (map[string]interface{}, error) {
+	mySettings := make(map[string]interface{}, 0)
+	if resourceSettings != nil {
+		if err := mergo.Merge(&mySettings, resourceSettings); err != nil {
+			return mySettings, err
+		}
+	}
+	if sharedSettings != nil {
+		if err := mergo.Merge(&mySettings, sharedSettings); err != nil {
+			return mySettings, err
+		}
+	}
+	return mySettings, nil
+}
 
 func TransformSettingsToEnvs(prefix string, settings map[string]interface{}, format string) ([]string, error) {
 	var envs []string

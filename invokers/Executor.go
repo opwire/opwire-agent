@@ -30,6 +30,7 @@ type CommandEntrypoint struct {
 	Methods map[string]*CommandDescriptor `json:"methods"`
 	Settings map[string]interface{} `json:"settings"`
 	SettingsFormat string `json:"settings-format"`
+	settingsEnvs []string
 }
 
 type CommandDescriptor struct {
@@ -141,6 +142,16 @@ func (e *Executor) Register(descriptor *CommandDescriptor, names ...string) (err
 	return nil
 }
 
+func (e *Executor) StoreSettings(prefix string, settings map[string]interface{}, format string, resourceName string) (error) {
+	envs, err := utils.TransformSettingsToEnvs(prefix, settings, format)
+	if err == nil {
+		if entrypoint, ok := e.resources[resourceName]; ok {
+			entrypoint.settingsEnvs = envs
+		}
+	}
+	return err
+}
+
 func (e *Executor) RunOnRawData(opts *CommandInvocation, inData []byte) ([]byte, []byte, *ExecutionState, error) {
 	ib := bytes.NewBuffer(inData)
 	var ob bytes.Buffer
@@ -157,8 +168,9 @@ func (e *Executor) Run(ib *bytes.Buffer, opts *CommandInvocation, ob *bytes.Buff
 	if descriptor, err := e.getCommandDescriptor(opts); err == nil {
 		if cmds, err := buildExecCmds(descriptor); err == nil {
 			if opts != nil && opts.Envs != nil {
+				envs := e.buildEnvs(opts)
 				for _, cmd := range cmds {
-					cmd.Env = opts.Envs
+					cmd.Env = envs
 				}
 			}
 			count := len(cmds)
@@ -204,10 +216,7 @@ func (e *Executor) getCommandDescriptor(opts *CommandInvocation) (*CommandDescri
 	if opts != nil && len(opts.PriorCommand) > 0 {
 		return prepareCommandDescriptor(opts.PriorCommand)
 	}
-	resourceName := MAIN_RESOURCE
-	if opts != nil && len(opts.ResourceName) > 0 {
-		resourceName = opts.ResourceName
-	}
+	resourceName := getResourceName(opts)
 	if entrypoint, ok := e.resources[resourceName]; ok {
 		if opts != nil && len(opts.MethodName) > 0 {
 			if methodCmd, found := entrypoint.Methods[opts.MethodName]; found {
@@ -250,6 +259,29 @@ func buildExecCmd(cmdString string) (*exec.Cmd, error) {
 	} else {
 		return exec.Command(parts[0], parts[1:]...), nil
 	}
+}
+
+func (e *Executor) buildEnvs(opts *CommandInvocation) []string {
+	envs := make([]string, len(opts.Envs))
+	copy(envs, opts.Envs)
+
+	resourceName := getResourceName(opts)
+	if entrypoint, ok := e.resources[resourceName]; ok {
+		settings := entrypoint.settingsEnvs
+		if settings != nil {
+			envs = append(envs, settings...)
+		}
+	}
+
+	return envs
+}
+
+func getResourceName(opts *CommandInvocation) (string) {
+	resourceName := MAIN_RESOURCE
+	if opts != nil && len(opts.ResourceName) > 0 {
+		resourceName = opts.ResourceName
+	}
+	return resourceName
 }
 
 func runCommand(ib *bytes.Buffer, ob *bytes.Buffer, eb *bytes.Buffer, cmdObject *exec.Cmd) error {
