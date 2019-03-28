@@ -65,6 +65,12 @@ var configurationSchema string = `{
 					"additionalProperties": false
 				}
 			]
+		},
+		"settings": {
+			"$ref": "#/definitions/Settings"
+		},
+		"settings-format": {
+			"$ref": "#/definitions/SettingsFormat"
 		}
 	},
 	"definitions": {
@@ -104,6 +110,20 @@ var configurationSchema string = `{
 				}
 			},
 			"required": [ "command" ]
+		},
+		"Settings": {
+			"oneOf": [
+				{
+					"type": "null"
+				},
+				{
+					"type": "object"
+				}
+			]
+		},
+		"SettingsFormat": {
+			"type": "string",
+			"enum": [ "", "json", "flat" ]
 		}
 	}
 }`
