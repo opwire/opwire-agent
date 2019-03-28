@@ -207,7 +207,6 @@ func (s *AgentServer) importResource(resourceName string, resource *invokers.Com
 			}
 		}
 		if privSettings, err := utils.CombineSettings(resource.Settings, settings); err == nil {
-			fmt.Printf("------------------------ settings: %v\n", privSettings)
 			privFormat := resource.SettingsFormat
 			if len(privFormat) == 0 {
 				privFormat = format

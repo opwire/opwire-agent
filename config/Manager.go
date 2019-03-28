@@ -51,12 +51,18 @@ func (m *Manager) loadJson() (*Configuration, error) {
 	}
 
 	config := &Configuration{}
+
 	configFile, err := fs.Open(cfgpath)
 	defer configFile.Close()
 	if err != nil {
 		return nil, err
 	}
+
 	parser := json.NewDecoder(configFile)
-	parser.Decode(config)
+	err = parser.Decode(config)
+	if err != nil {
+		return nil, err
+	}
+
 	return config, nil
 }
