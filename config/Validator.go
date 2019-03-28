@@ -95,6 +95,12 @@ var configurationSchema string = `{
 							"additionalProperties": false
 						}
 					]
+				},
+				"settings": {
+					"$ref": "#/definitions/Settings"
+				},
+				"settings-format": {
+					"$ref": "#/definitions/SettingsFormat"
 				}
 			}
 		},

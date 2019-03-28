@@ -101,30 +101,15 @@ func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
 
 	// register the main resource
 	if conf != nil && options.DefaultCommand == nil {
+		resourceId := invokers.MAIN_RESOURCE
 		resource := conf.Main
-		if resource != nil {
-			s.executor.Register(resource.Default, invokers.MAIN_RESOURCE)
-			if len(resource.Methods) > 0 {
-				for methodName, methodDescriptor := range resource.Methods {
-					if methodId, ok := normalizeMethod(methodName); ok {
-						s.executor.Register(methodDescriptor, invokers.MAIN_RESOURCE, methodId)
-					}
-				}
-			}
-		}
+		s.importResource(resourceId, resource, conf.Settings, conf.SettingsFormat)
 	}
 
 	// register the commands
 	if conf != nil && conf.Resources != nil {
 		for resourceId, resource := range conf.Resources {
-			s.executor.Register(resource.Default, resourceId)
-			if len(resource.Methods) > 0 {
-				for methodName, methodDescriptor := range resource.Methods {
-					if methodId, ok := normalizeMethod(methodName); ok {
-						s.executor.Register(methodDescriptor, resourceId, methodId)
-					}
-				}
-			}
+			s.importResource(resourceId, &resource, conf.Settings, conf.SettingsFormat)
 		}
 	}
 
@@ -223,6 +208,20 @@ func (s *AgentServer) Shutdown() (error) {
 	}
 
 	return nil
+}
+
+func (s *AgentServer) importResource(resourceId string, resource *invokers.CommandEntrypoint,
+		settings map[string]interface{}, format string) {
+	if resource != nil {
+		s.executor.Register(resource.Default, resourceId)
+		if len(resource.Methods) > 0 {
+			for methodName, methodDescriptor := range resource.Methods {
+				if methodId, ok := normalizeMethod(methodName); ok {
+					s.executor.Register(methodDescriptor, resourceId, methodId)
+				}
+			}
+		}
+	}
 }
 
 func (s *AgentServer) makeHealthCheckHandler() func(http.ResponseWriter, *http.Request) {
