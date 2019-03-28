@@ -123,6 +123,8 @@ func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
 	// defines HTTP request invokers
 	s.httpServeMux = mux.NewRouter()
 	s.httpServeMux.HandleFunc(`/_/health`, s.makeHealthCheckHandler())
+	s.httpServeMux.HandleFunc(`/_/lock`, s.makeLockServiceHandler(true))
+	s.httpServeMux.HandleFunc(`/_/unlock`, s.makeLockServiceHandler(false))
 	s.httpServeMux.HandleFunc(`/run/{resourceName:` + config.RESOURCE_NAME_PATTERN + `}`, s.makeInvocationHandler())
 	s.httpServeMux.HandleFunc(`/run/`, s.makeInvocationHandler())
 	s.httpServeMux.HandleFunc(`/run`, s.makeInvocationHandler())
@@ -216,17 +218,30 @@ func (s *AgentServer) importResource(resourceName string, resource *invokers.Com
 	}
 }
 
+func (s *AgentServer) makeLockServiceHandler(freezed bool) func(http.ResponseWriter, *http.Request) {
+	return func (w http.ResponseWriter, r *http.Request) {
+		if freezed {
+			s.lockService()
+		} else {
+			s.unlockService()
+		}
+		w.WriteHeader(http.StatusOK)
+	}
+}
+
 func (s *AgentServer) makeHealthCheckHandler() func(http.ResponseWriter, *http.Request) {
 	return func (w http.ResponseWriter, r *http.Request) {
+		if !s.isReady() {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			io.WriteString(w, fmt.Sprintf(`{"ready": false}`))
+			return
+		}
 		switch r.Method {
 		case http.MethodGet:
-			if s.isReady() {
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusOK)
-				io.WriteString(w, fmt.Sprintf(`{"alive": true}`))
-				break
-			}
-			w.WriteHeader(http.StatusServiceUnavailable)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			io.WriteString(w, fmt.Sprintf(`{"ready": true, "alive": true}`))
 		default:
 			w.WriteHeader(http.StatusMethodNotAllowed)
 		}
@@ -235,6 +250,10 @@ func (s *AgentServer) makeHealthCheckHandler() func(http.ResponseWriter, *http.R
 
 func (s *AgentServer) makeInvocationHandler() func(http.ResponseWriter, *http.Request) {
 	return func (w http.ResponseWriter, r *http.Request) {
+		if !s.isReady() {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
 		switch r.Method {
 		case
 			http.MethodGet,
