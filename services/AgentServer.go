@@ -122,7 +122,7 @@ func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
 
 	// transform & cache settings
 	if conf != nil && conf.Settings != nil {
-		if envs, err := compileSettingsToEnvs(OPWIRE_SETTINGS_PREFIX, conf.Settings, conf.SettingsFormat); err == nil {
+		if envs, err := utils.TransformSettingsToEnvs(OPWIRE_SETTINGS_PREFIX, conf.Settings, conf.SettingsFormat); err == nil {
 			s.settingsEnvs = envs
 		} 
 	}
@@ -393,43 +393,6 @@ func (s *AgentServer) lockService() (error) {
 func (s *AgentServer) unlockService() (error) {
 	atomic.StoreInt32(&s.listeningLock, 1)
 	return nil
-}
-
-func compileSettingsToEnvs(prefix string, settings map[string]interface{}, format string) ([]string, error) {
-	var envs []string
-	var err error
-	if format == "flat" {
-		envs, err = convertSettingsToFlatEnvs(prefix, settings)
-	} else {
-		envs, err = convertSettingsToJsonEnvs(prefix, settings)
-	}
-	if err != nil {
-		return nil, err
-	}
-	return envs, nil
-}
-
-func convertSettingsToJsonEnvs(prefix string, settings map[string]interface{}) ([]string, error) {
-	data, err := json.Marshal(settings)
-	if err != nil {
-		return nil, err
-	}
-	return []string{fmt.Sprintf("%s=%s", prefix, data)}, nil
-}
-
-func convertSettingsToFlatEnvs(prefix string, settings map[string]interface{}) ([]string, error) {
-	pairs, err := utils.Flatten(prefix, settings)
-	if err != nil {
-		return nil, err
-	}
-	list := make([]string, 0, len(pairs))
-	for key, val := range pairs {
-		if val != nil {
-			item := fmt.Sprintf("%s=%v", key, val)
-			list = append(list, item)
-		}
-	}
-	return list, nil
 }
 
 func buildHttpAddr(c *ServerOptions) string {
