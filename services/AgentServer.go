@@ -122,17 +122,9 @@ func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
 
 	// transform & cache settings
 	if conf != nil && conf.Settings != nil {
-		var envs []string
-		var err error
-		if conf.SettingsFormat == "flat" {
-			envs, err = convertSettingsToFlatEnvs(OPWIRE_SETTINGS_PREFIX, conf.Settings)
-		} else {
-			envs, err = convertSettingsToJsonEnvs(OPWIRE_SETTINGS_PREFIX, conf.Settings)
-		}
-		if err != nil {
-			return nil, err
-		}
-		s.settingsEnvs = envs
+		if envs, err := compileSettingsToEnvs(OPWIRE_SETTINGS_PREFIX, conf.Settings, conf.SettingsFormat); err == nil {
+			s.settingsEnvs = envs
+		} 
 	}
 
 	// defines HTTP request invokers
@@ -401,6 +393,20 @@ func (s *AgentServer) lockService() (error) {
 func (s *AgentServer) unlockService() (error) {
 	atomic.StoreInt32(&s.listeningLock, 1)
 	return nil
+}
+
+func compileSettingsToEnvs(prefix string, settings map[string]interface{}, format string) ([]string, error) {
+	var envs []string
+	var err error
+	if format == "flat" {
+		envs, err = convertSettingsToFlatEnvs(prefix, settings)
+	} else {
+		envs, err = convertSettingsToJsonEnvs(prefix, settings)
+	}
+	if err != nil {
+		return nil, err
+	}
+	return envs, nil
 }
 
 func convertSettingsToJsonEnvs(prefix string, settings map[string]interface{}) ([]string, error) {
