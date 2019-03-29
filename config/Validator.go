@@ -139,8 +139,15 @@ var configurationSchema string = `{
 			]
 		},
 		"SettingsFormat": {
-			"type": "string",
-			"enum": [ "", "json", "flat" ]
+			"oneOf": [
+				{
+					"type": "null"
+				},
+				{
+					"type": "string",
+					"enum": [ "json", "flat" ]
+				}
+			]
 		},
 		"HttpServer": {
 			"type": "object",

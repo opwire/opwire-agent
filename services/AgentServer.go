@@ -207,7 +207,7 @@ func (s *AgentServer) Shutdown() (error) {
 }
 
 func (s *AgentServer) importResource(resourceName string, resource *invokers.CommandEntrypoint,
-		settings map[string]interface{}, format string) {
+		settings map[string]interface{}, format *string) {
 	if resource != nil {
 		s.executor.Register(resource.Default, resourceName)
 		if len(resource.Methods) > 0 {
@@ -218,9 +218,12 @@ func (s *AgentServer) importResource(resourceName string, resource *invokers.Com
 			}
 		}
 		if privSettings, err := utils.CombineSettings(resource.Settings, settings); err == nil {
-			privFormat := resource.SettingsFormat
-			if len(privFormat) == 0 {
-				privFormat = format
+			privFormat := "json"
+			if format != nil {
+				privFormat = *format
+			}
+			if resource.SettingsFormat != nil {
+				privFormat = *resource.SettingsFormat
 			}
 			s.executor.StoreSettings(OPWIRE_SETTINGS_PREFIX, privSettings, privFormat, resourceName)
 		}

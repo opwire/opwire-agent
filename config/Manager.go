@@ -14,7 +14,7 @@ type Configuration struct {
 	Main *invokers.CommandEntrypoint `json:"main-resource"`
 	Resources map[string]invokers.CommandEntrypoint `json:"resources"`
 	Settings map[string]interface{} `json:"settings"`
-	SettingsFormat string `json:"settings-format"`
+	SettingsFormat *string `json:"settings-format"`
 	HttpServer *ConfigHttpServer `json:"http-server"`
 }
 

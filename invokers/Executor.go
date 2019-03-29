@@ -29,7 +29,7 @@ type CommandEntrypoint struct {
 	Default *CommandDescriptor `json:"default"`
 	Methods map[string]*CommandDescriptor `json:"methods"`
 	Settings map[string]interface{} `json:"settings"`
-	SettingsFormat string `json:"settings-format"`
+	SettingsFormat *string `json:"settings-format"`
 	settingsEnvs []string
 }
 
