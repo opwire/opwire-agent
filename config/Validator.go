@@ -6,6 +6,7 @@ import (
 )
 
 const RESOURCE_NAME_PATTERN string = `[a-zA-Z][a-zA-Z0-9_-]*`
+const BASEURL_PATTERN string = `([\\/]|([\\/][a-zA-Z]|[\\/][a-zA-Z][a-zA-Z0-9_-]*[a-zA-Z0-9])+)?`
 
 type Validator struct {
 	schemaLoader gojsonschema.JSONLoader
@@ -71,6 +72,16 @@ var configurationSchema string = `{
 		},
 		"settings-format": {
 			"$ref": "#/definitions/SettingsFormat"
+		},
+		"http-server": {
+			"oneOf": [
+				{
+					"type": "null"
+				},
+				{
+					"$ref": "#/definitions/HttpServer"
+				}
+			]
 		}
 	},
 	"definitions": {
@@ -130,6 +141,15 @@ var configurationSchema string = `{
 		"SettingsFormat": {
 			"type": "string",
 			"enum": [ "", "json", "flat" ]
+		},
+		"HttpServer": {
+			"type": "object",
+			"properties": {
+				"baseurl": {
+					"type": "string",
+					"pattern": "^` + BASEURL_PATTERN + `$"
+				}
+			}
 		}
 	}
 }`
