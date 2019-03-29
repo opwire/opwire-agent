@@ -246,14 +246,14 @@ func (s *AgentServer) makeHealthCheckHandler() func(http.ResponseWriter, *http.R
 		if !s.isReady() {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusServiceUnavailable)
-			io.WriteString(w, fmt.Sprintf(`{"ready": false}`))
+			io.WriteString(w, `{"ready": false}`)
 			return
 		}
 		switch r.Method {
 		case http.MethodGet:
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			io.WriteString(w, fmt.Sprintf(`{"ready": true, "alive": true}`))
+			io.WriteString(w, `{"ready": true, "alive": true}`)
 		default:
 			w.WriteHeader(http.StatusMethodNotAllowed)
 		}
@@ -273,15 +273,15 @@ func (s *AgentServer) makeInvocationHandler() func(http.ResponseWriter, *http.Re
 			http.MethodPut,
 			http.MethodPatch,
 			http.MethodDelete:
-				ci, ciErr := s.buildCommandInvocation(r)
-				if ciErr != nil {
-					w.Header().Set("X-Error-Message", ciErr.Error())
-					w.WriteHeader(http.StatusBadRequest)
-					break
-				}
 				ib, ibErr := s.buildCommandStdinBuffer(r)
 				if ibErr != nil {
 					w.Header().Set("X-Error-Message", ibErr.Error())
+					w.WriteHeader(http.StatusBadRequest)
+					break
+				}
+				ci, ciErr := s.buildCommandInvocation(r)
+				if ciErr != nil {
+					w.Header().Set("X-Error-Message", ciErr.Error())
 					w.WriteHeader(http.StatusBadRequest)
 					break
 				}
