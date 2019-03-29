@@ -122,8 +122,8 @@ func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
 
 	// defines HTTP request invokers
 	baseUrl := EXEC_BASEURL
-	if conf != nil && conf.HttpServer != nil && len(conf.HttpServer.BaseUrl) > 0 {
-		baseUrl = conf.HttpServer.BaseUrl
+	if conf != nil && conf.HttpServer != nil && conf.HttpServer.BaseUrl != nil {
+		baseUrl = *conf.HttpServer.BaseUrl
 	}
 	if baseUrl == "/" {
 		baseUrl = ""

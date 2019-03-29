@@ -19,7 +19,7 @@ type Configuration struct {
 }
 
 type ConfigHttpServer struct {
-	BaseUrl string `json:"baseurl"`
+	BaseUrl *string `json:"baseurl"`
 }
 
 type Manager struct {
