@@ -265,65 +265,67 @@ func (s *AgentServer) makeInvocationHandler() func(http.ResponseWriter, *http.Re
 			w.WriteHeader(http.StatusServiceUnavailable)
 			return
 		}
-		switch r.Method {
-		case
-			http.MethodGet,
-			http.MethodPost,
-			http.MethodPut,
-			http.MethodPatch,
-			http.MethodDelete:
-				ib, ibErr := s.buildCommandStdinBuffer(r)
-				if ibErr != nil {
-					w.Header().Set("X-Error-Message", ibErr.Error())
-					w.WriteHeader(http.StatusBadRequest)
-					break
-				}
-				if ib != nil {
-					defer ib.Close()
-				}
-				ci, ciErr := s.buildCommandInvocation(r)
-				if ciErr != nil {
-					w.Header().Set("X-Error-Message", ciErr.Error())
-					w.WriteHeader(http.StatusBadRequest)
-					break
-				}
-				var ob bytes.Buffer
-				var eb bytes.Buffer
-				state, err := s.executor.Run(ib, ci, &ob, &eb)
-				if state != nil && state.IsTimeout {
-					w.Header().Set("Content-Type","text/plain")
-					w.WriteHeader(http.StatusRequestTimeout)
-					io.WriteString(w, "Running processes are killed")
-					break
-				}
-				if err != nil {
-					w.Header().Set("X-Error-Message", err.Error())
-					w.Header().Set("Content-Type","text/plain")
-					w.WriteHeader(http.StatusInternalServerError)
-					io.WriteString(w, string(eb.Bytes()))
-					break
-				}
-				w.Header().Set("X-Exec-Duration", fmt.Sprintf("%f", state.Duration.Seconds()))
-				w.Header().Set("Content-Type", "text/plain")
-				w.WriteHeader(http.StatusOK)
-				io.WriteString(w, string(ob.Bytes()))
-		default:
+		if isMethodAccepted(r.Method) {
+			ib, ibErr := s.buildCommandStdinBuffer(r)
+			if ibErr != nil {
+				w.Header().Set("X-Error-Message", ibErr.Error())
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+			if ib != nil {
+				defer ib.Close()
+			}
+			ci, ciErr := s.buildCommandInvocation(r)
+			if ciErr != nil {
+				w.Header().Set("X-Error-Message", ciErr.Error())
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+			var ob bytes.Buffer
+			var eb bytes.Buffer
+			state, err := s.executor.Run(ib, ci, &ob, &eb)
+			if state != nil && state.IsTimeout {
+				w.Header().Set("Content-Type","text/plain")
+				w.WriteHeader(http.StatusRequestTimeout)
+				io.WriteString(w, "Running processes are killed")
+				return
+			}
+			if err != nil {
+				w.Header().Set("X-Error-Message", err.Error())
+				w.Header().Set("Content-Type","text/plain")
+				w.WriteHeader(http.StatusInternalServerError)
+				io.WriteString(w, string(eb.Bytes()))
+				return
+			}
+			w.Header().Set("X-Exec-Duration", fmt.Sprintf("%f", state.Duration.Seconds()))
+			w.Header().Set("Content-Type", "text/plain")
+			w.WriteHeader(http.StatusOK)
+			io.WriteString(w, string(ob.Bytes()))
+			return
+		} else {
 			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
 		}
 	}
 }
 
-var ACCEPTED_METHODS []string = []string{
-	http.MethodGet,
-	http.MethodPost,
-	http.MethodPut,
-	http.MethodPatch,
-	http.MethodDelete,
+func isMethodAccepted(method string) (bool) {
+	switch method {
+	case
+		http.MethodGet,
+		http.MethodPost,
+		http.MethodPut,
+		http.MethodPatch,
+		http.MethodDelete:
+		return true
+	default:
+		return false
+	}
 }
 
 func normalizeMethod(method string) (string, bool) {
 	name := strings.ToUpper(method)
-	if utils.Contains(ACCEPTED_METHODS, name) {
+	if isMethodAccepted(name) {
 		return name, true
 	}
 	return name, false
