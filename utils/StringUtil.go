@@ -26,8 +26,8 @@ func PadString(text string, align AlignmentType, lineLength int, seed string) st
 	switch align {
 	case LEFT:
 		loop := math.Ceil(float64(1) + (float64(lineLength-seedLength))/float64(seedLength))
-		line = strings.Repeat(seed, int(loop)) + text
-		line = line[len(line)-lineLength:]
+		line = text + strings.Repeat(seed, int(loop))
+		line = line[:lineLength]
 	case CENTER:
 		half := (float64(lineLength - textLength)) / float64(2)
 		loop := math.Ceil(half / float64(seedLength))
@@ -35,8 +35,8 @@ func PadString(text string, align AlignmentType, lineLength int, seed string) st
 				strings.Repeat(seed, int(loop))[:int(math.Ceil(float64(half)))]
 	case RIGHT:
 		loop := math.Ceil(float64(1) + (float64(lineLength-seedLength))/float64(seedLength))
-		line = text + strings.Repeat(seed, int(loop))
-		line = line[:lineLength]
+		line = strings.Repeat(seed, int(loop)) + text
+		line = line[len(line)-lineLength:]
 	}
 
 	return line

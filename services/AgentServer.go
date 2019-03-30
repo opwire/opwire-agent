@@ -438,12 +438,13 @@ func (s *AgentServer) explainRequest(w http.ResponseWriter, ib *bytes.Buffer, ci
 	reqText, p2 := utils.FirstHasPrefix(ci.Envs, OPWIRE_REQUEST_PREFIX_PLUS, true)
 	if p2 >= 0 {
 		if len(reqText) > 0 {
+			var reqJson []byte
 			reqObj, err := s.reqSerializer.Decode([]byte(reqText))
 			if err == nil {
-				reqStr, err := json.MarshalIndent(reqObj, "", "  ")
-				if err == nil {
-					printSection(w, "request", []byte(reqStr))
-				}
+				reqJson, err = json.MarshalIndent(reqObj, "", "  ")
+			}
+			if err == nil && len(reqJson) > 0 {
+				printSection(w, "request", reqJson)
 			} else {
 				printSection(w, "request (text)", []byte(reqText))
 			}
@@ -455,13 +456,14 @@ func (s *AgentServer) explainRequest(w http.ResponseWriter, ib *bytes.Buffer, ci
 	settingsText, p3 := utils.FirstHasPrefix(settingsEnvs, OPWIRE_SETTINGS_PREFIX_PLUS, true)
 	if p3 >= 0 {
 		if len(settingsText) > 0 {
+			var settingsJson []byte
 			settingsMap := make(map[string]interface{}, 0)
 			err := json.Unmarshal([]byte(settingsText), &settingsMap)
 			if err == nil {
-				settingsJson, err := json.MarshalIndent(settingsMap, "", "  ")
-				if err == nil {
-					printSection(w, "settings", []byte(settingsJson))
-				}
+				settingsJson, err = json.MarshalIndent(settingsMap, "", "  ")
+			}
+			if err == nil && len(settingsJson) > 0 {
+				printSection(w, "settings", settingsJson)
 			} else {
 				printSection(w, "settings (text)", []byte(settingsText))
 			}
