@@ -143,6 +143,13 @@ func (e *Executor) Register(descriptor *CommandDescriptor, names ...string) (err
 	return nil
 }
 
+func (e *Executor) GetSettings(resourceName string) []string {
+	if entrypoint, ok := e.resources[resourceName]; ok {
+		return entrypoint.settingsEnvs
+	}
+	return nil
+}
+
 func (e *Executor) StoreSettings(prefix string, settings map[string]interface{}, format string, resourceName string) (error) {
 	envs, err := utils.TransformSettingsToEnvs(prefix, settings, format)
 	if err == nil {
@@ -217,7 +224,7 @@ func (e *Executor) getCommandDescriptor(opts *CommandInvocation) (*CommandDescri
 	if opts != nil && len(opts.PriorCommand) > 0 {
 		return prepareCommandDescriptor(opts.PriorCommand)
 	}
-	resourceName := getResourceName(opts)
+	resourceName := GetResourceName(opts)
 	if entrypoint, ok := e.resources[resourceName]; ok {
 		if opts != nil && len(opts.MethodName) > 0 {
 			if methodCmd, found := entrypoint.Methods[opts.MethodName]; found {
@@ -266,7 +273,7 @@ func (e *Executor) buildEnvs(opts *CommandInvocation) []string {
 	envs := make([]string, len(opts.Envs))
 	copy(envs, opts.Envs)
 
-	resourceName := getResourceName(opts)
+	resourceName := GetResourceName(opts)
 	if entrypoint, ok := e.resources[resourceName]; ok {
 		settings := entrypoint.settingsEnvs
 		if settings != nil {
@@ -277,7 +284,7 @@ func (e *Executor) buildEnvs(opts *CommandInvocation) []string {
 	return envs
 }
 
-func getResourceName(opts *CommandInvocation) (string) {
+func GetResourceName(opts *CommandInvocation) (string) {
 	resourceName := MAIN_RESOURCE
 	if opts != nil && len(opts.ResourceName) > 0 {
 		resourceName = opts.ResourceName
