@@ -18,5 +18,7 @@ func TestStringPadding(t *testing.T) {
 	assert.Equal(t, PadString("label", CENTER, 10, "_"), "__label___")
 	assert.Equal(t, PadString("label", RIGHT, 10, "*"), "*****label")
 
+	assert.Equal(t, PadString("label", LEFT, 10, ".-"), "label.-.-.")
+	assert.Equal(t, PadString("label", CENTER, 10, ".-"), ".-label.-.")
 	assert.Equal(t, PadString("label", RIGHT, 10, ".-"), "-.-.-label")
 }

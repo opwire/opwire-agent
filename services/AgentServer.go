@@ -423,8 +423,6 @@ func (s *AgentServer) buildCommandStdinReader(r *http.Request, w io.Writer) (io.
 	return src, nil
 }
 
-var NEWLINE []byte = []byte("\n")
-
 func (s *AgentServer) explainRequest(w http.ResponseWriter, ib *bytes.Buffer, ci *invokers.CommandInvocation) {
 	// display agent's edition
 	edition, p1 := utils.FirstHasPrefix(ci.Envs, OPWIRE_EDITION_PREFIX_PLUS, true)
@@ -489,21 +487,16 @@ func (s *AgentServer) explainResult(w http.ResponseWriter, ib *bytes.Buffer, ci 
 	}
 }
 
-func printSection(w http.ResponseWriter, label string, data []byte) {
-	io.WriteString(w, printHeading(label))
-	w.Write(NEWLINE)
-	w.Write(data)
-	w.Write(NEWLINE)
-	w.Write(NEWLINE)
+func printSection(w http.ResponseWriter, label string, data interface{}) {
+	io.WriteString(w, fmt.Sprintf("%s\n%s\n\n", printHeading(label), data))
 }
 
 func printCollection(w http.ResponseWriter, label string, settings []string) {
-	io.WriteString(w, printHeading(label))
-	w.Write(NEWLINE)
+	io.WriteString(w, fmt.Sprintf("%s\n", printHeading(label)))
 	for i, s := range settings {
 		io.WriteString(w, fmt.Sprintf("%d) %s\n", i, s))
 	}
-	w.Write(NEWLINE)
+	io.WriteString(w, fmt.Sprintln())
 }
 
 func printHeading(label string) string {
