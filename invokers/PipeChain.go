@@ -1,7 +1,6 @@
 package invokers
 
 import (
-	"bytes"
 	"io"
 	"log"
 	"os/exec"
@@ -12,7 +11,7 @@ type PipeChain struct {
 	stopFlag bool
 }
 
-func (p *PipeChain) Run(ib *bytes.Buffer, ob *bytes.Buffer, eb *bytes.Buffer, chain ...*exec.Cmd) error {
+func (p *PipeChain) Run(ib io.Reader, ob io.Writer, eb io.Writer, chain ...*exec.Cmd) error {
 	pipes := make([]*io.PipeWriter, len(chain)-1)
 	i := 0
 	chain[i].Stdin = ib

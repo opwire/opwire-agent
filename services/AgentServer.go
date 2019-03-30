@@ -23,7 +23,7 @@ import (
 type CommandExecutor interface {
 	Register(*invokers.CommandDescriptor, ...string) (error)
 	StoreSettings(prefix string, settings map[string]interface{}, format string, resourceName string) (error)
-	Run(*bytes.Buffer, *invokers.CommandInvocation, *bytes.Buffer, *bytes.Buffer) (*invokers.ExecutionState, error)
+	Run(io.Reader, *invokers.CommandInvocation, io.Writer, io.Writer) (*invokers.ExecutionState, error)
 }
 
 type ServerEdition struct {

@@ -3,6 +3,7 @@ package invokers
 import(
 	"fmt"
 	"bytes"
+	"io"
 	"io/ioutil"
 	"log"
 	"os/exec"
@@ -53,7 +54,7 @@ type ExecutionState struct {
 }
 
 type PipeChainRunner interface {
-	Run(ib *bytes.Buffer, ob *bytes.Buffer, eb *bytes.Buffer, chain ...*exec.Cmd) error
+	Run(ib io.Reader, ob io.Writer, eb io.Writer, chain ...*exec.Cmd) error
 	Stop()
 }
 
@@ -163,7 +164,7 @@ func (e *Executor) RunOnRawData(opts *CommandInvocation, inData []byte) ([]byte,
 	}
 }
 
-func (e *Executor) Run(ib *bytes.Buffer, opts *CommandInvocation, ob *bytes.Buffer, eb *bytes.Buffer) (*ExecutionState, error) {
+func (e *Executor) Run(ib io.Reader, opts *CommandInvocation, ob io.Writer, eb io.Writer) (*ExecutionState, error) {
 	startTime := time.Now()
 	if descriptor, err := e.getCommandDescriptor(opts); err == nil {
 		if cmds, err := buildExecCmds(descriptor); err == nil {
@@ -284,7 +285,7 @@ func getResourceName(opts *CommandInvocation) (string) {
 	return resourceName
 }
 
-func runCommand(ib *bytes.Buffer, ob *bytes.Buffer, eb *bytes.Buffer, cmdObject *exec.Cmd) error {
+func runCommand(ib io.Reader, ob io.Writer, eb io.Writer, cmdObject *exec.Cmd) error {
 	cmdObject.Stdin = ib
 	cmdObject.Stdout = ob
 	cmdObject.Stderr = eb
