@@ -70,20 +70,46 @@ func SortDesc(arr []string) []string {
 	return Reverse(arr)
 }
 
-func FirstHasPrefix(arr []string, pre string) (string, int) {
+func FirstHasPrefix(arr []string, prefix string, cropped bool) (string, int) {
 	for i, str := range arr {
-		if strings.HasPrefix(str, pre) {
+		if strings.HasPrefix(str, prefix) {
+			if cropped {
+				return strings.TrimPrefix(str, prefix), i
+			}
 			return str, i
 		}
 	}
 	return "", -1
 }
 
-func FirstHasSuffix(arr []string, pre string) (string, int) {
+func FirstHasSuffix(arr []string, suffix string, cropped bool) (string, int) {
 	for i, str := range arr {
-		if strings.HasSuffix(str, pre) {
+		if strings.HasSuffix(str, suffix) {
+			if cropped {
+				return strings.TrimSuffix(str, suffix), i
+			}
 			return str, i
 		}
 	}
 	return "", -1
+}
+
+func FilterByPrefix(arr []string, prefix string) ([]string) {
+	result := make([]string, 0)
+	for _, str := range arr {
+		if strings.HasPrefix(str, prefix) {
+			result = append(result, str)
+		}
+	}
+	return result
+}
+
+func FilterBySuffix(arr []string, suffix string) ([]string) {
+	result := make([]string, 0)
+	for _, str := range arr {
+		if strings.HasSuffix(str, suffix) {
+			result = append(result, str)
+		}
+	}
+	return result
 }
