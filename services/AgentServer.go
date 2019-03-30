@@ -266,14 +266,16 @@ func (s *AgentServer) makeInvocationHandler() func(http.ResponseWriter, *http.Re
 			return
 		}
 		if isMethodAccepted(r.Method) {
-			ib, ibErr := s.buildCommandStdinBuffer(r)
-			if ibErr != nil {
-				w.Header().Set("X-Error-Message", ibErr.Error())
+			var ib bytes.Buffer
+			tee := &ib
+			ir, irErr := s.buildCommandStdinReader(r, tee)
+			if irErr != nil {
+				w.Header().Set("X-Error-Message", irErr.Error())
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
-			if ib != nil {
-				defer ib.Close()
+			if ir != nil {
+				defer ir.Close()
 			}
 			ci, ciErr := s.buildCommandInvocation(r)
 			if ciErr != nil {
@@ -283,7 +285,7 @@ func (s *AgentServer) makeInvocationHandler() func(http.ResponseWriter, *http.Re
 			}
 			var ob bytes.Buffer
 			var eb bytes.Buffer
-			state, err := s.executor.Run(ib, ci, &ob, &eb)
+			state, err := s.executor.Run(ir, ci, &ob, &eb)
 			if state != nil && state.IsTimeout {
 				w.Header().Set("Content-Type","text/plain")
 				w.WriteHeader(http.StatusRequestTimeout)
@@ -296,12 +298,13 @@ func (s *AgentServer) makeInvocationHandler() func(http.ResponseWriter, *http.Re
 				w.WriteHeader(http.StatusInternalServerError)
 				io.WriteString(w, string(eb.Bytes()))
 				return
+			} else {
+				w.Header().Set("X-Exec-Duration", fmt.Sprintf("%f", state.Duration.Seconds()))
+				w.Header().Set("Content-Type", "text/plain")
+				w.WriteHeader(http.StatusOK)
+				io.WriteString(w, string(ob.Bytes()))
+				return
 			}
-			w.Header().Set("X-Exec-Duration", fmt.Sprintf("%f", state.Duration.Seconds()))
-			w.Header().Set("Content-Type", "text/plain")
-			w.WriteHeader(http.StatusOK)
-			io.WriteString(w, string(ob.Bytes()))
-			return
 		} else {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
@@ -359,8 +362,20 @@ func (s *AgentServer) buildCommandInvocation(r *http.Request) (*invokers.Command
 	}, nil
 }
 
-func (s *AgentServer) buildCommandStdinBuffer(r *http.Request) (io.ReadCloser, error) {
-	return r.Body, nil
+type teeReadCloser struct {
+	io.Reader
+	io.Closer
+}
+
+func (s *AgentServer) buildCommandStdinReader(r *http.Request, w io.Writer) (io.ReadCloser, error) {
+	src := r.Body
+	if src == nil {
+		return nil, nil
+	}
+	if w != nil {
+		src = &teeReadCloser{io.TeeReader(src, w), src}
+	}
+	return src, nil
 }
 
 func (s *AgentServer) listenAndServe() (error) {
