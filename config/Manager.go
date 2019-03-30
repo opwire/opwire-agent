@@ -11,11 +11,16 @@ import (
 
 type Configuration struct {
 	Version string `json:"version"`
+	Agent *ConfigAgent `json:"agent"`
 	Main *invokers.CommandEntrypoint `json:"main-resource"`
 	Resources map[string]invokers.CommandEntrypoint `json:"resources"`
 	Settings map[string]interface{} `json:"settings"`
 	SettingsFormat *string `json:"settings-format"`
 	HttpServer *ConfigHttpServer `json:"http-server"`
+}
+
+type ConfigAgent struct {
+	ExplanationEnabled *bool `json:"explanation-enabled"`
 }
 
 type ConfigHttpServer struct {

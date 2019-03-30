@@ -41,6 +41,28 @@ var configurationSchema string = `{
 			"type": "string",
 			"pattern": "^[v]?(\\d+\\.)?(\\d+\\.)?(\\*|\\d+)$"
 		},
+		"agent": {
+			"oneOf": [
+				{
+					"type": "null"
+				},
+				{
+					"type": "object",
+					"properties": {
+						"explanation-enabled": {
+							"oneOf": [
+								{
+									"type": "null"
+								},
+								{
+									"type": "boolean"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
 		"main-resource": {
 			"oneOf": [
 				{
