@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -279,6 +278,9 @@ func (s *AgentServer) makeInvocationHandler() func(http.ResponseWriter, *http.Re
 					w.WriteHeader(http.StatusBadRequest)
 					break
 				}
+				if ib != nil {
+					defer ib.Close()
+				}
 				ci, ciErr := s.buildCommandInvocation(r)
 				if ciErr != nil {
 					w.Header().Set("X-Error-Message", ciErr.Error())
@@ -355,19 +357,8 @@ func (s *AgentServer) buildCommandInvocation(r *http.Request) (*invokers.Command
 	}, nil
 }
 
-func (s *AgentServer) buildCommandStdinBuffer(r *http.Request) (*bytes.Buffer, error) {
-	if r.Body == nil {
-		return bytes.NewBuffer(nil), nil
-	}
-
-	defer r.Body.Close()
-
-	data, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	return bytes.NewBuffer(data), nil
+func (s *AgentServer) buildCommandStdinBuffer(r *http.Request) (io.ReadCloser, error) {
+	return r.Body, nil
 }
 
 func (s *AgentServer) listenAndServe() (error) {
