@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -21,6 +22,7 @@ import (
 
 type CommandExecutor interface {
 	Register(*invokers.CommandDescriptor, ...string) (error)
+	GetSettings(resourceName string) []string
 	StoreSettings(prefix string, settings map[string]interface{}, format string, resourceName string) (error)
 	Run(io.Reader, *invokers.CommandInvocation, io.Writer, io.Writer) (*invokers.ExecutionState, error)
 }
@@ -51,6 +53,7 @@ type AgentServer struct {
 	listeningLock int32
 	initialized bool
 	edition *ServerEdition
+	explanationEnabled bool
 }
 
 func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
@@ -154,6 +157,11 @@ func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
 
 	// marks the release manifest
 	s.edition = &c.Edition
+
+	// other configurations
+	if conf != nil && conf.Agent != nil && conf.Agent.ExplanationEnabled != nil {
+		s.explanationEnabled = *conf.Agent.ExplanationEnabled
+	}
 
 	// starts the server by default
 	if !c.SuppressAutoStart {
@@ -266,8 +274,26 @@ func (s *AgentServer) makeInvocationHandler() func(http.ResponseWriter, *http.Re
 			return
 		}
 		if isMethodAccepted(r.Method) {
+			isRunningSuppressed := false
+			isFailureExplained := false
+			isSuccessExplained := false
+			if s.explanationEnabled {
+				if len(r.Header.Get("Opwire-Suppress-Running")) > 0 {
+					isRunningSuppressed = true
+				}
+				if len(r.Header.Get("Opwire-Explain-Failure")) > 0 {
+					isFailureExplained = true
+				}
+				if len(r.Header.Get("Opwire-Explain-Success")) > 0 {
+					isSuccessExplained = true
+				}
+			}
+
 			var ib bytes.Buffer
-			tee := &ib
+			var tee io.Writer
+			if s.explanationEnabled {
+				tee = &ib
+			}
 			ir, irErr := s.buildCommandStdinReader(r, tee)
 			if irErr != nil {
 				w.Header().Set("X-Error-Message", irErr.Error())
@@ -283,6 +309,13 @@ func (s *AgentServer) makeInvocationHandler() func(http.ResponseWriter, *http.Re
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
+			if isRunningSuppressed {
+				w.Header().Set("Content-Type","text/plain")
+				w.WriteHeader(http.StatusResetContent)
+				ioutil.ReadAll(ir)
+				s.explainRequest(w, &ib, ci)
+				return
+			}
 			var ob bytes.Buffer
 			var eb bytes.Buffer
 			state, err := s.executor.Run(ir, ci, &ob, &eb)
@@ -293,14 +326,26 @@ func (s *AgentServer) makeInvocationHandler() func(http.ResponseWriter, *http.Re
 				return
 			}
 			if err != nil {
-				w.Header().Set("X-Error-Message", err.Error())
+				if isFailureExplained {
+					w.Header().Set("Content-Type","text/plain")
+					w.WriteHeader(http.StatusInternalServerError)
+					s.explainResult(w, &ib, ci, err, &ob, &eb)
+					return
+				}
 				w.Header().Set("Content-Type","text/plain")
+				w.Header().Set("X-Error-Message", err.Error())
 				w.WriteHeader(http.StatusInternalServerError)
 				io.WriteString(w, string(eb.Bytes()))
 				return
 			} else {
-				w.Header().Set("X-Exec-Duration", fmt.Sprintf("%f", state.Duration.Seconds()))
+				if isSuccessExplained {
+					w.Header().Set("Content-Type", "text/plain")
+					w.WriteHeader(http.StatusResetContent)
+					s.explainResult(w, &ib, ci, err, &ob, &eb)
+					return
+				}
 				w.Header().Set("Content-Type", "text/plain")
+				w.Header().Set("X-Exec-Duration", fmt.Sprintf("%f", state.Duration.Seconds()))
 				w.WriteHeader(http.StatusOK)
 				io.WriteString(w, string(ob.Bytes()))
 				return
@@ -378,6 +423,91 @@ func (s *AgentServer) buildCommandStdinReader(r *http.Request, w io.Writer) (io.
 	return src, nil
 }
 
+var NEWLINE []byte = []byte("\n")
+
+func (s *AgentServer) explainRequest(w http.ResponseWriter, ib *bytes.Buffer, ci *invokers.CommandInvocation) {
+	// display agent's edition
+	edition, p1 := utils.FirstHasPrefix(ci.Envs, OPWIRE_EDITION_PREFIX_PLUS, true)
+	if p1 >= 0 {
+		if len(edition) > 0 {
+			printSection(w, "edition", []byte(edition))
+		}
+	}
+
+	// display the request parameters
+	reqText, p2 := utils.FirstHasPrefix(ci.Envs, OPWIRE_REQUEST_PREFIX_PLUS, true)
+	if p2 >= 0 {
+		if len(reqText) > 0 {
+			reqObj, err := s.reqSerializer.Decode([]byte(reqText))
+			if err == nil {
+				reqStr, err := json.MarshalIndent(reqObj, "", "  ")
+				if err == nil {
+					printSection(w, "request", []byte(reqStr))
+				}
+			} else {
+				printSection(w, "request (text)", []byte(reqText))
+			}
+		}
+	}
+
+	// display the settings
+	settingsEnvs := s.executor.GetSettings(invokers.GetResourceName(ci))
+	settingsText, p3 := utils.FirstHasPrefix(settingsEnvs, OPWIRE_SETTINGS_PREFIX_PLUS, true)
+	if p3 >= 0 {
+		if len(settingsText) > 0 {
+			settingsMap := make(map[string]interface{}, 0)
+			err := json.Unmarshal([]byte(settingsText), &settingsMap)
+			if err == nil {
+				settingsJson, err := json.MarshalIndent(settingsMap, "", "  ")
+				if err == nil {
+					printSection(w, "settings", []byte(settingsJson))
+				}
+			} else {
+				printSection(w, "settings (text)", []byte(settingsText))
+			}
+		}
+	} else {
+		if len(settingsEnvs) > 0 {
+			printCollection(w, "settings", settingsEnvs)
+		}
+	}
+
+	// display the input from stdin
+	printSection(w, "stdin", ib.Bytes())
+}
+
+func (s *AgentServer) explainResult(w http.ResponseWriter, ib *bytes.Buffer, ci *invokers.CommandInvocation, err error, ob *bytes.Buffer, eb *bytes.Buffer) {
+	s.explainRequest(w, ib, ci)
+
+	if err != nil {
+		printSection(w, "error", []byte(err.Error()))
+		printSection(w, "stderr", eb.Bytes())
+	} else {
+		printSection(w, "stdout", ob.Bytes())
+	}
+}
+
+func printSection(w http.ResponseWriter, label string, data []byte) {
+	io.WriteString(w, printHeading(label))
+	w.Write(NEWLINE)
+	w.Write(data)
+	w.Write(NEWLINE)
+	w.Write(NEWLINE)
+}
+
+func printCollection(w http.ResponseWriter, label string, settings []string) {
+	io.WriteString(w, printHeading(label))
+	w.Write(NEWLINE)
+	for i, s := range settings {
+		io.WriteString(w, fmt.Sprintf("%d) %s\n", i, s))
+	}
+	w.Write(NEWLINE)
+}
+
+func printHeading(label string) string {
+	return utils.PadString(label, utils.CENTER, 80, "-")
+}
+
 func (s *AgentServer) listenAndServe() (error) {
 	idleConnections := make(chan struct{})
 
@@ -434,5 +564,8 @@ const CTRL_BASEURL string = `/_/`
 const EXEC_BASEURL string = `/run`
 const DEFAULT_PORT uint = 17779
 const OPWIRE_EDITION_PREFIX string = "OPWIRE_EDITION"
+const OPWIRE_EDITION_PREFIX_PLUS string = OPWIRE_EDITION_PREFIX + "="
 const OPWIRE_REQUEST_PREFIX string = "OPWIRE_REQUEST"
+const OPWIRE_REQUEST_PREFIX_PLUS string = OPWIRE_REQUEST_PREFIX + "="
 const OPWIRE_SETTINGS_PREFIX string = "OPWIRE_SETTINGS"
+const OPWIRE_SETTINGS_PREFIX_PLUS string = OPWIRE_SETTINGS_PREFIX + "="
