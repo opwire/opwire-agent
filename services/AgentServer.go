@@ -21,7 +21,7 @@ import (
 )
 
 type CommandExecutor interface {
-	Register(*invokers.CommandDescriptor, ...string) (error)
+	Register(descriptor *invokers.CommandDescriptor, names ...string) (error)
 	ResolveCommandName(opts *invokers.CommandInvocation) (resourceName *string, methodName *string, err error)
 	GetSettings(resourceName string) []string
 	StoreSettings(prefix string, settings map[string]interface{}, format string, resourceName string) (error)
@@ -54,6 +54,7 @@ type AgentServer struct {
 	listeningLock int32
 	initialized bool
 	edition *ServerEdition
+	options *ServerOptions
 	explanationEnabled bool
 }
 
@@ -64,6 +65,9 @@ func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
 
 	// creates a new server instance
 	s = &AgentServer{}
+
+	// remember server options
+	s.options = c
 
 	// creates a new command executor
 	options := &invokers.ExecutorOptions{}

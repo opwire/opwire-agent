@@ -3,7 +3,6 @@ package main
 import (
 	"github.com/opwire/opwire-agent/shellio"
 	"github.com/opwire/opwire-agent/services"
-	"github.com/opwire/opwire-agent/utils"
 )
 
 func main() {
@@ -12,19 +11,13 @@ func main() {
 	}
 
 	args, _ := shellio.ParseArgs()
+	opts := args.AgentServerOptions()
+	opts.Edition = services.ServerEdition {
+		Revision: gitCommit,
+		Version: gitTag,
+	}
 
-	_, err := services.NewAgentServer(&services.ServerOptions{
-		Host: args.Host,
-		Port: args.Port,
-		ConfigPath: args.ConfigPath,
-		StaticPath: utils.ParseDirMappings(args.StaticPath),
-		DefaultCommand: args.DefaultCommand,
-		Edition: services.ServerEdition {
-			Revision: gitCommit,
-			Version: gitTag,
-		},
-	})
-
+	_, err := services.NewAgentServer(opts)
 	if err != nil {
 		shellio.Println("Fatal: %s", err.Error())
 	}
