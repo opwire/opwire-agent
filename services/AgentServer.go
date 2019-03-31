@@ -461,16 +461,17 @@ func (s *AgentServer) explainResult(w http.ResponseWriter, ib *bytes.Buffer, ci 
 }
 
 func printSection(w http.ResponseWriter, label string, data interface{}) {
-	io.WriteString(w, fmt.Sprintf("%s\n%s\n\n", printHeading(label), data))
+	heading := utils.PadString(label, utils.CENTER, 80, "-")
+	io.WriteString(w, fmt.Sprintf("%s\n%s\n\n", heading, data))
 }
 
 func printCollection(w http.ResponseWriter, label string, settings []string) {
 	if len(settings) > 0 {
-		io.WriteString(w, fmt.Sprintf("%s\n", printHeading(label)))
-		for i, s := range settings {
-			io.WriteString(w, fmt.Sprintf("%d) %s\n", i, s))
-		}
-		io.WriteString(w, fmt.Sprintln())
+		lines := utils.Map(settings, func(s string, i int) string {
+			return fmt.Sprintf("%d) %s", (i + 1), s)
+		})
+		section := strings.Join(lines, "\n")
+		printSection(w, label, section)
 	}
 }
 
@@ -488,10 +489,6 @@ func printJsonObject(w http.ResponseWriter, label string, dataText string) {
 			printSection(w, label + " (text)", dataText)
 		}
 	}
-}
-
-func printHeading(label string) string {
-	return utils.PadString(label, utils.CENTER, 80, "-")
 }
 
 func (s *AgentServer) listenAndServe() (error) {
