@@ -42,7 +42,7 @@ type CommandDescriptor struct {
 
 type CommandInvocation struct {
 	Envs []string
-	PriorCommand string
+	DirectCommand string
 	ResourceName string
 	MethodName string
 	ExecutionTimeout TimeSecond
@@ -226,8 +226,8 @@ func (e *Executor) ResolveCommandName(opts *CommandInvocation) (*string, *string
 }
 
 func (e *Executor) resolveCommandDescriptor(opts *CommandInvocation) (*CommandDescriptor, *string, *string, error) {
-	if opts != nil && len(opts.PriorCommand) > 0 {
-		descriptor, err := prepareCommandDescriptor(opts.PriorCommand)
+	if opts != nil && len(opts.DirectCommand) > 0 {
+		descriptor, err := prepareCommandDescriptor(opts.DirectCommand)
 		return descriptor, nil, nil, err
 	}
 	resourceName := getResourceName(opts)

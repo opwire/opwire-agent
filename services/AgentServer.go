@@ -37,7 +37,7 @@ type ServerOptions struct {
 	Host string
 	Port uint
 	ConfigPath string
-	DefaultCommand string
+	DirectCommand string
 	StaticPath map[string]string
 	SuppressAutoStart bool
 	Edition ServerEdition
@@ -401,8 +401,8 @@ func (s *AgentServer) buildCommandInvocation(r *http.Request) (*invokers.Command
 		MethodName: methodName,
 	}
 	// determine the direct-command
-	if s.options != nil && len(s.options.DefaultCommand) > 0 {
-		ci.PriorCommand = s.options.DefaultCommand
+	if s.options != nil && len(s.options.DirectCommand) > 0 {
+		ci.DirectCommand = s.options.DirectCommand
 	}
 	// return the CommandInvocation reference
 	return ci, nil
