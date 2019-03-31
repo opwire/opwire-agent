@@ -461,8 +461,9 @@ func (s *AgentServer) explainResult(w http.ResponseWriter, ib *bytes.Buffer, ci 
 }
 
 func printSection(w http.ResponseWriter, label string, data interface{}) {
-	heading := utils.PadString(label, utils.CENTER, 80, "-")
-	io.WriteString(w, fmt.Sprintf("%s\n%s\n\n", heading, data))
+	header := utils.PadString("[" + label, utils.LEFT, 80, "-")
+	footer := utils.PadString(label + "]", utils.RIGHT, 80, "-")
+	io.WriteString(w, fmt.Sprintf("\n%s\n%s\n%s\n", header, data, footer))
 }
 
 func printCollection(w http.ResponseWriter, label string, settings []string) {
