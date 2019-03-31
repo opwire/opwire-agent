@@ -53,7 +53,6 @@ type AgentServer struct {
 	executor CommandExecutor
 	listeningLock int32
 	initialized bool
-	edition *ServerEdition
 	options *ServerOptions
 	explanationEnabled bool
 }
@@ -70,13 +69,7 @@ func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
 	s.options = c
 
 	// creates a new command executor
-	options := &invokers.ExecutorOptions{}
-	if len(c.DefaultCommand) > 0 {
-		options.DefaultCommand = &invokers.CommandDescriptor{
-			CommandString: c.DefaultCommand,
-		}
-	}
-	s.executor, err = invokers.NewExecutor(options)
+	s.executor, err = invokers.NewExecutor(&invokers.ExecutorOptions{})
 
 	if err != nil {
 		return nil, err
@@ -107,7 +100,7 @@ func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
 	}
 
 	// register the main resource
-	if conf != nil && options.DefaultCommand == nil {
+	if conf != nil && conf.Main != nil {
 		resourceName := invokers.MAIN_RESOURCE
 		resource := conf.Main
 		s.importResource(resourceName, resource, conf.Settings, conf.SettingsFormat)
@@ -159,9 +152,6 @@ func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
 
 	// marks this instance has been initialized properly
 	s.initialized = true
-
-	// marks the release manifest
-	s.edition = &c.Edition
 
 	// other configurations
 	if conf != nil && conf.Agent != nil && conf.Agent.ExplanationEnabled != nil {
@@ -393,8 +383,8 @@ func (s *AgentServer) buildCommandInvocation(r *http.Request) (*invokers.Command
 	// prepare environment variables
 	envs := os.Environ()
 	// import the release information
-	if s.edition != nil {
-		if str, err := json.Marshal(s.edition); err == nil {
+	if s.options != nil {
+		if str, err := json.Marshal(s.options.Edition); err == nil {
 			envs = append(envs, fmt.Sprintf("%s=%s", OPWIRE_EDITION_PREFIX, str))
 		}
 	}
@@ -404,12 +394,18 @@ func (s *AgentServer) buildCommandInvocation(r *http.Request) (*invokers.Command
 	} else {
 		return nil, err
 	}
-	// return the CommandInvocation reference
-	return &invokers.CommandInvocation{
+	// create a new CommandInvocation
+	ci := &invokers.CommandInvocation{
 		Envs: envs,
 		ResourceName: resourceName,
 		MethodName: methodName,
-	}, nil
+	}
+	// determine the direct-command
+	if s.options != nil && len(s.options.DefaultCommand) > 0 {
+		ci.PriorCommand = s.options.DefaultCommand
+	}
+	// return the CommandInvocation reference
+	return ci, nil
 }
 
 type teeReadCloser struct {
