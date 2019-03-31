@@ -174,11 +174,40 @@ var configurationSchema string = `{
 		"HttpServer": {
 			"type": "object",
 			"properties": {
+				"host": {
+					"oneOf": [
+						{
+							"type": "null"
+						},
+						{
+							"type": "string"
+						}
+					]
+				},
+				"port": {
+					"oneOf": [
+						{
+							"type": "null"
+						},
+						{
+							"type": "integer",
+							"minimum": 0
+						}
+					]
+				},
 				"baseurl": {
-					"type": "string",
-					"pattern": "^` + BASEURL_PATTERN + `$"
+					"oneOf": [
+						{
+							"type": "null"
+						},
+						{
+							"type": "string",
+							"pattern": "^` + BASEURL_PATTERN + `$"
+						}
+					]
 				}
-			}
+			},
+			"additionalProperties": false
 		}
 	}
 }`

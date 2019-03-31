@@ -24,6 +24,8 @@ type ConfigAgent struct {
 }
 
 type ConfigHttpServer struct {
+	Host *string `json:"host"`
+	Port *int `json:"port"`
 	BaseUrl *string `json:"baseurl"`
 }
 

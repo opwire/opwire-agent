@@ -424,52 +424,25 @@ func (s *AgentServer) buildCommandStdinReader(r *http.Request, w io.Writer) (io.
 }
 
 func (s *AgentServer) explainRequest(w http.ResponseWriter, ib *bytes.Buffer, ci *invokers.CommandInvocation) {
-	// display agent's edition
+	// display agent's release information
 	edition, p1 := utils.FirstHasPrefix(ci.Envs, OPWIRE_EDITION_PREFIX_PLUS, true)
 	if p1 >= 0 {
-		if len(edition) > 0 {
-			printSection(w, "edition", []byte(edition))
-		}
+		printJsonObject(w, "edition", edition)
 	}
 
 	// display the request parameters
 	reqText, p2 := utils.FirstHasPrefix(ci.Envs, OPWIRE_REQUEST_PREFIX_PLUS, true)
 	if p2 >= 0 {
-		if len(reqText) > 0 {
-			var reqJson []byte
-			reqObj, err := s.reqSerializer.Decode([]byte(reqText))
-			if err == nil {
-				reqJson, err = json.MarshalIndent(reqObj, "", "  ")
-			}
-			if err == nil && len(reqJson) > 0 {
-				printSection(w, "request", reqJson)
-			} else {
-				printSection(w, "request (text)", []byte(reqText))
-			}
-		}
+		printJsonObject(w, "request", reqText)
 	}
 
 	// display the settings
 	settingsEnvs := s.executor.GetSettings(invokers.GetResourceName(ci))
 	settingsText, p3 := utils.FirstHasPrefix(settingsEnvs, OPWIRE_SETTINGS_PREFIX_PLUS, true)
 	if p3 >= 0 {
-		if len(settingsText) > 0 {
-			var settingsJson []byte
-			settingsMap := make(map[string]interface{}, 0)
-			err := json.Unmarshal([]byte(settingsText), &settingsMap)
-			if err == nil {
-				settingsJson, err = json.MarshalIndent(settingsMap, "", "  ")
-			}
-			if err == nil && len(settingsJson) > 0 {
-				printSection(w, "settings", settingsJson)
-			} else {
-				printSection(w, "settings (text)", []byte(settingsText))
-			}
-		}
+		printJsonObject(w, "settings", settingsText)
 	} else {
-		if len(settingsEnvs) > 0 {
-			printCollection(w, "settings", settingsEnvs)
-		}
+		printCollection(w, "settings", settingsEnvs)
 	}
 
 	// display the input from stdin
@@ -492,11 +465,29 @@ func printSection(w http.ResponseWriter, label string, data interface{}) {
 }
 
 func printCollection(w http.ResponseWriter, label string, settings []string) {
-	io.WriteString(w, fmt.Sprintf("%s\n", printHeading(label)))
-	for i, s := range settings {
-		io.WriteString(w, fmt.Sprintf("%d) %s\n", i, s))
+	if len(settings) > 0 {
+		io.WriteString(w, fmt.Sprintf("%s\n", printHeading(label)))
+		for i, s := range settings {
+			io.WriteString(w, fmt.Sprintf("%d) %s\n", i, s))
+		}
+		io.WriteString(w, fmt.Sprintln())
 	}
-	io.WriteString(w, fmt.Sprintln())
+}
+
+func printJsonObject(w http.ResponseWriter, label string, dataText string) {
+	if len(dataText) > 0 {
+		var dataJson []byte
+		dataMap := make(map[string]interface{}, 0)
+		err := json.Unmarshal([]byte(dataText), &dataMap)
+		if err == nil {
+			dataJson, err = json.MarshalIndent(dataMap, "", "  ")
+		}
+		if err == nil && len(dataJson) > 0 {
+			printSection(w, label, dataJson)
+		} else {
+			printSection(w, label + " (text)", dataText)
+		}
+	}
 }
 
 func printHeading(label string) string {
