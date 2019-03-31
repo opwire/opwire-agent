@@ -22,6 +22,7 @@ import (
 
 type CommandExecutor interface {
 	Register(*invokers.CommandDescriptor, ...string) (error)
+	ResolveCommandName(opts *invokers.CommandInvocation) (resourceName *string, methodName *string, err error)
 	GetSettings(resourceName string) []string
 	StoreSettings(prefix string, settings map[string]interface{}, format string, resourceName string) (error)
 	Run(io.Reader, *invokers.CommandInvocation, io.Writer, io.Writer) (*invokers.ExecutionState, error)
@@ -438,16 +439,29 @@ func (s *AgentServer) explainRequest(w http.ResponseWriter, ib *bytes.Buffer, ci
 
 	// display the resource, method and command
 	commandInfo := make(map[string]interface{}, 0)
-	commandInfo["resource-name"] = ci.ResourceName
+
+	commandInfo["request"] = map[string]interface{}{
+		"resource": ci.ResourceName,
+		"method": ci.MethodName,
+	}
+
+	resourceRef, methodRef, _ := s.executor.ResolveCommandName(ci)
+	commandInfo["suggest"] = map[string]interface{}{
+		"resource": resourceRef,
+		"method": methodRef,
+	}
+
 	printJsonObject(w, "command", commandInfo)
 
 	// display the settings
-	settingsEnvs := s.executor.GetSettings(invokers.GetResourceName(ci))
-	settingsText, p3 := utils.FirstHasPrefix(settingsEnvs, OPWIRE_SETTINGS_PREFIX_PLUS, true)
-	if p3 >= 0 {
-		printJsonString(w, "settings", settingsText)
-	} else {
-		printCollection(w, "settings", settingsEnvs)
+	if resourceRef != nil {
+		settingsEnvs := s.executor.GetSettings(*resourceRef)
+		settingsText, p3 := utils.FirstHasPrefix(settingsEnvs, OPWIRE_SETTINGS_PREFIX_PLUS, true)
+		if p3 >= 0 {
+			printJsonString(w, "settings", settingsText)
+		} else {
+			printCollection(w, "settings", settingsEnvs)
+		}
 	}
 
 	// display the input from stdin

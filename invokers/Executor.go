@@ -220,12 +220,17 @@ func (e *Executor) Run(ib io.Reader, opts *CommandInvocation, ob io.Writer, eb i
 	}
 }
 
+func (e *Executor) ResolveCommandName(opts *CommandInvocation) (*string, *string, error) {
+	_, rName, mName, err := e.resolveCommandDescriptor(opts)
+	return rName, mName, err
+}
+
 func (e *Executor) resolveCommandDescriptor(opts *CommandInvocation) (*CommandDescriptor, *string, *string, error) {
 	if opts != nil && len(opts.PriorCommand) > 0 {
 		descriptor, err := prepareCommandDescriptor(opts.PriorCommand)
 		return descriptor, nil, nil, err
 	}
-	resourceName := GetResourceName(opts)
+	resourceName := getResourceName(opts)
 	if entrypoint, ok := e.resources[resourceName]; ok {
 		if opts != nil && len(opts.MethodName) > 0 {
 			if methodCmd, found := entrypoint.Methods[opts.MethodName]; found {
@@ -274,7 +279,7 @@ func (e *Executor) buildEnvs(opts *CommandInvocation) []string {
 	envs := make([]string, len(opts.Envs))
 	copy(envs, opts.Envs)
 
-	resourceName := GetResourceName(opts)
+	resourceName := getResourceName(opts)
 	if entrypoint, ok := e.resources[resourceName]; ok {
 		settings := entrypoint.settingsEnvs
 		if settings != nil {
@@ -285,7 +290,7 @@ func (e *Executor) buildEnvs(opts *CommandInvocation) []string {
 	return envs
 }
 
-func GetResourceName(opts *CommandInvocation) (string) {
+func getResourceName(opts *CommandInvocation) (string) {
 	resourceName := MAIN_RESOURCE
 	if opts != nil && len(opts.ResourceName) > 0 {
 		resourceName = opts.ResourceName
