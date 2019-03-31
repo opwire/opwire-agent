@@ -173,7 +173,7 @@ func (e *Executor) RunOnRawData(opts *CommandInvocation, inData []byte) ([]byte,
 
 func (e *Executor) Run(ib io.Reader, opts *CommandInvocation, ob io.Writer, eb io.Writer) (*ExecutionState, error) {
 	startTime := time.Now()
-	if descriptor, err := e.getCommandDescriptor(opts); err == nil {
+	if descriptor, _, _, err := e.resolveCommandDescriptor(opts); err == nil {
 		if cmds, err := buildExecCmds(descriptor); err == nil {
 			if opts != nil && opts.Envs != nil {
 				envs := e.buildEnvs(opts)
@@ -220,20 +220,21 @@ func (e *Executor) Run(ib io.Reader, opts *CommandInvocation, ob io.Writer, eb i
 	}
 }
 
-func (e *Executor) getCommandDescriptor(opts *CommandInvocation) (*CommandDescriptor, error) {
+func (e *Executor) resolveCommandDescriptor(opts *CommandInvocation) (*CommandDescriptor, *string, *string, error) {
 	if opts != nil && len(opts.PriorCommand) > 0 {
-		return prepareCommandDescriptor(opts.PriorCommand)
+		descriptor, err := prepareCommandDescriptor(opts.PriorCommand)
+		return descriptor, nil, nil, err
 	}
 	resourceName := GetResourceName(opts)
 	if entrypoint, ok := e.resources[resourceName]; ok {
 		if opts != nil && len(opts.MethodName) > 0 {
 			if methodCmd, found := entrypoint.Methods[opts.MethodName]; found {
-				return methodCmd, nil
+				return methodCmd, &resourceName, &opts.MethodName, nil
 			}
 		}
-		return entrypoint.Default, nil
+		return entrypoint.Default, &resourceName, nil, nil
 	}
-	return nil, fmt.Errorf("Command [%s] not found", resourceName)
+	return nil, nil, nil, fmt.Errorf("Command [%s] not found", resourceName)
 }
 
 func prepareCommandDescriptor(cmdString string) (*CommandDescriptor, error) {

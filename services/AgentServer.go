@@ -427,20 +427,25 @@ func (s *AgentServer) explainRequest(w http.ResponseWriter, ib *bytes.Buffer, ci
 	// display agent's release information
 	edition, p1 := utils.FirstHasPrefix(ci.Envs, OPWIRE_EDITION_PREFIX_PLUS, true)
 	if p1 >= 0 {
-		printJsonObject(w, "edition", edition)
+		printJsonString(w, "edition", edition)
 	}
 
 	// display the request parameters
 	reqText, p2 := utils.FirstHasPrefix(ci.Envs, OPWIRE_REQUEST_PREFIX_PLUS, true)
 	if p2 >= 0 {
-		printJsonObject(w, "request", reqText)
+		printJsonString(w, "request", reqText)
 	}
+
+	// display the resource, method and command
+	commandInfo := make(map[string]interface{}, 0)
+	commandInfo["resource-name"] = ci.ResourceName
+	printJsonObject(w, "command", commandInfo)
 
 	// display the settings
 	settingsEnvs := s.executor.GetSettings(invokers.GetResourceName(ci))
 	settingsText, p3 := utils.FirstHasPrefix(settingsEnvs, OPWIRE_SETTINGS_PREFIX_PLUS, true)
 	if p3 >= 0 {
-		printJsonObject(w, "settings", settingsText)
+		printJsonString(w, "settings", settingsText)
 	} else {
 		printCollection(w, "settings", settingsEnvs)
 	}
@@ -453,8 +458,8 @@ func (s *AgentServer) explainResult(w http.ResponseWriter, ib *bytes.Buffer, ci 
 	s.explainRequest(w, ib, ci)
 
 	if err != nil {
-		printSection(w, "error", []byte(err.Error()))
 		printSection(w, "stderr", eb.Bytes())
+		printSection(w, "error", []byte(err.Error()))
 	} else {
 		printSection(w, "stdout", ob.Bytes())
 	}
@@ -476,20 +481,31 @@ func printCollection(w http.ResponseWriter, label string, settings []string) {
 	}
 }
 
-func printJsonObject(w http.ResponseWriter, label string, dataText string) {
+func printJsonString(w http.ResponseWriter, label string, dataText string) error {
 	if len(dataText) > 0 {
-		var dataJson []byte
 		dataMap := make(map[string]interface{}, 0)
 		err := json.Unmarshal([]byte(dataText), &dataMap)
 		if err == nil {
-			dataJson, err = json.MarshalIndent(dataMap, "", "  ")
-		}
-		if err == nil && len(dataJson) > 0 {
-			printSection(w, label, dataJson)
+			return printJsonObject(w, label, dataMap)
 		} else {
 			printSection(w, label + " (text)", dataText)
 		}
 	}
+	return nil
+}
+
+func printJsonObject(w http.ResponseWriter, label string, dataMap map[string]interface{}) error {
+	if len(dataMap) > 0 {
+		dataJson, err := json.MarshalIndent(dataMap, "", "  ")
+		if err != nil {
+			return err
+		}
+		if len(dataJson) == 0 {
+			return fmt.Errorf("Marshalling failed, data is empty")
+		}
+		printSection(w, label, dataJson)
+	}
+	return nil
 }
 
 func (s *AgentServer) listenAndServe() (error) {
