@@ -451,7 +451,11 @@ func (s *AgentServer) explainRequest(w http.ResponseWriter, ib *bytes.Buffer, ci
 		"method": methodRef,
 	}
 
-	printJsonObject(w, "command", commandInfo)
+	if len(ci.DirectCommand) == 0 {
+		printJsonObject(w, "command", commandInfo)
+	} else {
+		printSection(w, "command", fmt.Sprintf(`direct-command: "%s"`, ci.DirectCommand))
+	}
 
 	// display the settings
 	if resourceRef != nil {
