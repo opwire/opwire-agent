@@ -8,10 +8,10 @@ import (
 )
 
 type AgentCmdArgs struct {
+	ConfigPath *string `short:"c" long:"config" description:"Explicit configuration file"`
 	Host *string `short:"h" long:"host" description:"Agent http server host"`
 	Port *uint `short:"p" long:"port" description:"Agent http server port"`
 	DirectCommand *string `short:"d" long:"default-command" description:"The command string that will be executed directly"`
-	ConfigPath *string `short:"c" long:"config" description:"Explicit configuration file"`
 	StaticPath []string `short:"s" long:"static-path" description:"Path of static web resources"`
 	Verbose []bool `short:"v" long:"verbose" description:"Show verbose debug information"`
 }
@@ -24,6 +24,9 @@ func ParseArgs() (AgentCmdArgs, error) {
 
 func (a *AgentCmdArgs) AgentServerOptions() (*services.ServerOptions) {
 	o := &services.ServerOptions{}
+	if a.ConfigPath != nil {
+		o.ConfigPath = *a.ConfigPath
+	}
 	if a.Host != nil {
 		o.Host = a.Host
 	}
@@ -32,9 +35,6 @@ func (a *AgentCmdArgs) AgentServerOptions() (*services.ServerOptions) {
 	}
 	if a.DirectCommand != nil {
 		o.DirectCommand = *a.DirectCommand
-	}
-	if a.ConfigPath != nil {
-		o.ConfigPath = *a.ConfigPath
 	}
 	o.StaticPath = utils.ParseDirMappings(a.StaticPath)
 	return o

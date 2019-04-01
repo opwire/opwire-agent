@@ -34,9 +34,9 @@ type ServerEdition struct {
 }
 
 type ServerOptions struct {
+	ConfigPath string
 	Host *string
 	Port *uint
-	ConfigPath string
 	DirectCommand string
 	StaticPath map[string]string
 	SuppressAutoStart bool
@@ -263,86 +263,91 @@ func (s *AgentServer) makeInvocationHandler() func(http.ResponseWriter, *http.Re
 			return
 		}
 		if isMethodAccepted(r.Method) {
-			isRunningSuppressed := false
-			isFailureExplained := false
-			isSuccessExplained := false
-			if s.explanationEnabled {
-				if len(r.Header.Get("Opwire-Suppress-Running")) > 0 {
-					isRunningSuppressed = true
-				}
-				if len(r.Header.Get("Opwire-Explain-Failure")) > 0 {
-					isFailureExplained = true
-				}
-				if len(r.Header.Get("Opwire-Explain-Success")) > 0 {
-					isSuccessExplained = true
-				}
-			}
-
-			var ib bytes.Buffer
-			var tee io.Writer
-			if s.explanationEnabled {
-				tee = &ib
-			}
-			ir, irErr := s.buildCommandStdinReader(r, tee)
-			if irErr != nil {
-				w.Header().Set("X-Error-Message", irErr.Error())
-				w.WriteHeader(http.StatusBadRequest)
-				return
-			}
-			if ir != nil {
-				defer ir.Close()
-			}
-			ci, ciErr := s.buildCommandInvocation(r)
-			if ciErr != nil {
-				w.Header().Set("X-Error-Message", ciErr.Error())
-				w.WriteHeader(http.StatusBadRequest)
-				return
-			}
-			if isRunningSuppressed {
-				w.Header().Set("Content-Type","text/plain")
-				w.WriteHeader(http.StatusResetContent)
-				ioutil.ReadAll(ir)
-				s.explainRequest(w, &ib, ci)
-				return
-			}
-			var ob bytes.Buffer
-			var eb bytes.Buffer
-			state, err := s.executor.Run(ir, ci, &ob, &eb)
-			if state != nil && state.IsTimeout {
-				w.Header().Set("Content-Type","text/plain")
-				w.WriteHeader(http.StatusRequestTimeout)
-				io.WriteString(w, "Running processes are killed")
-				return
-			}
-			if err != nil {
-				if isFailureExplained {
-					w.Header().Set("Content-Type","text/plain")
-					w.WriteHeader(http.StatusInternalServerError)
-					s.explainResult(w, &ib, ci, err, &ob, &eb)
-					return
-				}
-				w.Header().Set("Content-Type","text/plain")
-				w.Header().Set("X-Error-Message", err.Error())
-				w.WriteHeader(http.StatusInternalServerError)
-				io.WriteString(w, string(eb.Bytes()))
-				return
-			} else {
-				if isSuccessExplained {
-					w.Header().Set("Content-Type", "text/plain")
-					w.WriteHeader(http.StatusResetContent)
-					s.explainResult(w, &ib, ci, err, &ob, &eb)
-					return
-				}
-				w.Header().Set("Content-Type", "text/plain")
-				w.Header().Set("X-Exec-Duration", fmt.Sprintf("%f", state.Duration.Seconds()))
-				w.WriteHeader(http.StatusOK)
-				io.WriteString(w, string(ob.Bytes()))
-				return
-			}
+			s.doExecuteCommand(w, r)
+			return
 		} else {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
+	}
+}
+
+func (s *AgentServer) doExecuteCommand(w http.ResponseWriter, r *http.Request) {
+	isRunningSuppressed := false
+	isFailureExplained := false
+	isSuccessExplained := false
+	if s.explanationEnabled {
+		if len(r.Header.Get("Opwire-Suppress-Running")) > 0 {
+			isRunningSuppressed = true
+		}
+		if len(r.Header.Get("Opwire-Explain-Failure")) > 0 {
+			isFailureExplained = true
+		}
+		if len(r.Header.Get("Opwire-Explain-Success")) > 0 {
+			isSuccessExplained = true
+		}
+	}
+
+	var ib bytes.Buffer
+	var tee io.Writer
+	if s.explanationEnabled {
+		tee = &ib
+	}
+	ir, irErr := s.buildCommandStdinReader(r, tee)
+	if irErr != nil {
+		w.Header().Set("X-Error-Message", irErr.Error())
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	if ir != nil {
+		defer ir.Close()
+	}
+	ci, ciErr := s.buildCommandInvocation(r)
+	if ciErr != nil {
+		w.Header().Set("X-Error-Message", ciErr.Error())
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	if isRunningSuppressed {
+		w.Header().Set("Content-Type","text/plain")
+		w.WriteHeader(http.StatusResetContent)
+		ioutil.ReadAll(ir)
+		s.explainRequest(w, &ib, ci)
+		return
+	}
+	var ob bytes.Buffer
+	var eb bytes.Buffer
+	state, err := s.executor.Run(ir, ci, &ob, &eb)
+	if state != nil && state.IsTimeout {
+		w.Header().Set("Content-Type","text/plain")
+		w.WriteHeader(http.StatusRequestTimeout)
+		io.WriteString(w, "Running processes are killed")
+		return
+	}
+	if err != nil {
+		if isFailureExplained {
+			w.Header().Set("Content-Type","text/plain")
+			w.WriteHeader(http.StatusInternalServerError)
+			s.explainResult(w, &ib, ci, err, &ob, &eb)
+			return
+		}
+		w.Header().Set("Content-Type","text/plain")
+		w.Header().Set("X-Error-Message", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		io.WriteString(w, string(eb.Bytes()))
+		return
+	} else {
+		if isSuccessExplained {
+			w.Header().Set("Content-Type", "text/plain")
+			w.WriteHeader(http.StatusResetContent)
+			s.explainResult(w, &ib, ci, err, &ob, &eb)
+			return
+		}
+		w.Header().Set("Content-Type", "text/plain")
+		w.Header().Set("X-Exec-Duration", fmt.Sprintf("%f", state.Duration.Seconds()))
+		w.WriteHeader(http.StatusOK)
+		io.WriteString(w, string(ob.Bytes()))
+		return
 	}
 }
 
