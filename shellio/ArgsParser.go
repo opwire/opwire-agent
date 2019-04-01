@@ -25,10 +25,10 @@ func ParseArgs() (AgentCmdArgs, error) {
 func (a *AgentCmdArgs) AgentServerOptions() (*services.ServerOptions) {
 	o := &services.ServerOptions{}
 	if a.Host != nil {
-		o.Host = *a.Host
+		o.Host = a.Host
 	}
 	if a.Port != nil {
-		o.Port = *a.Port
+		o.Port = a.Port
 	}
 	if a.DirectCommand != nil {
 		o.DirectCommand = *a.DirectCommand

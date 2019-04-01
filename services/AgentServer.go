@@ -34,8 +34,8 @@ type ServerEdition struct {
 }
 
 type ServerOptions struct {
-	Host string
-	Port uint
+	Host *string
+	Port *uint
 	ConfigPath string
 	DirectCommand string
 	StaticPath map[string]string
@@ -148,7 +148,11 @@ func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
 	}
 
 	// creates a new HTTP server
-	s.httpServeAddr = buildHttpAddr(c)
+	var httpServerCfg *config.ConfigHttpServer
+	if conf != nil {
+		httpServerCfg = conf.HttpServer
+	}
+	s.httpServeAddr = buildHttpAddr(c, httpServerCfg)
 
 	// marks this instance has been initialized properly
 	s.initialized = true
@@ -584,12 +588,24 @@ func (s *AgentServer) unlockService() (error) {
 	return nil
 }
 
-func buildHttpAddr(c *ServerOptions) string {
-	port := DEFAULT_PORT
-	if c.Port > 0 {
-		port = c.Port
+func buildHttpAddr(opts *ServerOptions, conf *config.ConfigHttpServer) string {
+	var host string
+	if conf != nil && conf.Host != nil {
+		host = *conf.Host
 	}
-	return fmt.Sprintf("%s:%d", c.Host, port)
+	if opts != nil && opts.Host != nil {
+		host = *opts.Host
+	}
+
+	port := DEFAULT_PORT
+	if conf != nil && conf.Port != nil {
+		port = *conf.Port
+	}
+	if opts != nil && opts.Port != nil {
+		port = *opts.Port
+	}
+
+	return fmt.Sprintf("%s:%d", host, port)
 }
 
 const CTRL_BASEURL string = `/_/`
