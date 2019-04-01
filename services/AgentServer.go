@@ -121,13 +121,7 @@ func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
 	}
 
 	// defines HTTP request invokers
-	baseUrl := EXEC_BASEURL
-	if conf != nil && conf.HttpServer != nil && conf.HttpServer.BaseUrl != nil {
-		baseUrl = *conf.HttpServer.BaseUrl
-	}
-	if baseUrl == "/" {
-		baseUrl = ""
-	}
+	baseUrl := buildBaseUrl(conf)
 	s.httpServeMux = mux.NewRouter()
 	s.httpServeMux.HandleFunc(CTRL_BASEURL + `health`, s.makeHealthCheckHandler())
 	s.httpServeMux.HandleFunc(CTRL_BASEURL + `lock`, s.makeLockServiceHandler(true))
@@ -148,11 +142,7 @@ func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
 	}
 
 	// creates a new HTTP server
-	var httpServerCfg *config.ConfigHttpServer
-	if conf != nil {
-		httpServerCfg = conf.HttpServer
-	}
-	s.httpServeAddr = buildHttpAddr(c, httpServerCfg)
+	s.httpServeAddr = buildHttpAddr(c, conf)
 
 	// marks this instance has been initialized properly
 	s.initialized = true
@@ -588,7 +578,11 @@ func (s *AgentServer) unlockService() (error) {
 	return nil
 }
 
-func buildHttpAddr(opts *ServerOptions, conf *config.ConfigHttpServer) string {
+func buildHttpAddr(opts *ServerOptions, c *config.Configuration) string {
+	var conf *config.ConfigHttpServer
+	if c != nil {
+		conf = c.HttpServer
+	}
 	var host string
 	if conf != nil && conf.Host != nil {
 		host = *conf.Host
@@ -606,6 +600,17 @@ func buildHttpAddr(opts *ServerOptions, conf *config.ConfigHttpServer) string {
 	}
 
 	return fmt.Sprintf("%s:%d", host, port)
+}
+
+func buildBaseUrl(conf *config.Configuration) string {
+	baseUrl := EXEC_BASEURL
+	if conf != nil && conf.HttpServer != nil && conf.HttpServer.BaseUrl != nil {
+		baseUrl = *conf.HttpServer.BaseUrl
+	}
+	if baseUrl == "/" {
+		baseUrl = ""
+	}
+	return baseUrl
 }
 
 const CTRL_BASEURL string = `/_/`
