@@ -71,6 +71,17 @@ func NewExecutor(opts *ExecutorOptions) (*Executor, error) {
 	return e, nil
 }
 
+func GetExecutionTimeout(cd *CommandDescriptor, ci *CommandInvocation) TimeSecond {
+	var timeout TimeSecond
+	if cd != nil {
+		timeout = cd.ExecutionTimeout
+		if ci != nil && ci.ExecutionTimeout > 0 {
+			timeout = ci.ExecutionTimeout
+		}
+	}
+	return timeout
+}
+
 func extractNames(names []string) (string, string, error) {
 	num := len(names)
 	switch num {
@@ -173,7 +184,7 @@ func (e *Executor) RunOnRawData(opts *CommandInvocation, inData []byte) ([]byte,
 
 func (e *Executor) Run(ib io.Reader, opts *CommandInvocation, ob io.Writer, eb io.Writer) (*ExecutionState, error) {
 	startTime := time.Now()
-	if descriptor, _, _, err := e.resolveCommandDescriptor(opts); err == nil {
+	if descriptor, _, _, err := e.ResolveCommandDescriptor(opts); err == nil {
 		if cmds, err := buildExecCmds(descriptor); err == nil {
 			if opts != nil && opts.Envs != nil {
 				envs := e.buildEnvs(opts)
@@ -188,10 +199,7 @@ func (e *Executor) Run(ib io.Reader, opts *CommandInvocation, ob io.Writer, eb i
 				pipeChain := constructor()
 
 				var timer *time.Timer
-				timeout := descriptor.ExecutionTimeout
-				if opts != nil && opts.ExecutionTimeout > 0 {
-					timeout = opts.ExecutionTimeout
-				}
+				timeout := GetExecutionTimeout(descriptor, opts)
 				if timeout > 0 {
 					timer = time.AfterFunc(time.Second * time.Duration(timeout), func() {
 						log.Printf("Execution is timeout after %d seconds\n", timeout)
@@ -220,12 +228,7 @@ func (e *Executor) Run(ib io.Reader, opts *CommandInvocation, ob io.Writer, eb i
 	}
 }
 
-func (e *Executor) ResolveCommandName(opts *CommandInvocation) (*string, *string, error) {
-	_, rName, mName, err := e.resolveCommandDescriptor(opts)
-	return rName, mName, err
-}
-
-func (e *Executor) resolveCommandDescriptor(opts *CommandInvocation) (*CommandDescriptor, *string, *string, error) {
+func (e *Executor) ResolveCommandDescriptor(opts *CommandInvocation) (*CommandDescriptor, *string, *string, error) {
 	if opts != nil && len(opts.DirectCommand) > 0 {
 		descriptor, err := prepareCommandDescriptor(opts.DirectCommand)
 		return descriptor, nil, nil, err

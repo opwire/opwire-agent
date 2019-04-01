@@ -22,7 +22,7 @@ import (
 
 type CommandExecutor interface {
 	Register(descriptor *invokers.CommandDescriptor, names ...string) (error)
-	ResolveCommandName(opts *invokers.CommandInvocation) (resourceName *string, methodName *string, err error)
+	ResolveCommandDescriptor(opts *invokers.CommandInvocation) (descriptor *invokers.CommandDescriptor, resourceName *string, methodName *string, err error)
 	GetSettings(resourceName string) []string
 	StoreSettings(prefix string, settings map[string]interface{}, format string, resourceName string) (error)
 	Run(io.Reader, *invokers.CommandInvocation, io.Writer, io.Writer) (*invokers.ExecutionState, error)
@@ -438,20 +438,34 @@ func (s *AgentServer) explainRequest(w http.ResponseWriter, ib *bytes.Buffer, ci
 	}
 
 	// display the resource, method and command
-	commandInfo := make(map[string]interface{}, 0)
-
-	commandInfo["request"] = map[string]interface{}{
-		"resource": ci.ResourceName,
-		"method": ci.MethodName,
-	}
-
-	resourceRef, methodRef, _ := s.executor.ResolveCommandName(ci)
-	commandInfo["suggest"] = map[string]interface{}{
-		"resource": resourceRef,
-		"method": methodRef,
-	}
-
+	var resourceRef, methodRef *string
 	if len(ci.DirectCommand) == 0 {
+		commandInfo := make(map[string]interface{}, 0)
+
+		providedInfo := map[string]interface{}{
+			"resource": ci.ResourceName,
+			"method": ci.MethodName,
+		}
+		if ci.ExecutionTimeout > 0 {
+			providedInfo["timeout"] = ci.ExecutionTimeout
+		}
+		commandInfo["provided"] = providedInfo
+
+		var descriptor *invokers.CommandDescriptor
+		descriptor, resourceRef, methodRef, _ = s.executor.ResolveCommandDescriptor(ci)
+		resolvedInfo := map[string]interface{}{
+			"resource": resourceRef,
+			"method": methodRef,
+		}
+		if descriptor != nil {
+			resolvedInfo["command"] = descriptor.CommandString
+			timeout := invokers.GetExecutionTimeout(descriptor, ci)
+			if timeout > 0 {
+				resolvedInfo["timeout"] = timeout
+			}
+		}
+		commandInfo["resolved"] = resolvedInfo
+
 		printJsonObject(w, "command", commandInfo)
 	} else {
 		printSection(w, "command", fmt.Sprintf(`direct-command: "%s"`, ci.DirectCommand))
