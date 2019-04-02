@@ -40,6 +40,7 @@ type CommandDescriptor struct {
 }
 
 type CommandInvocation struct {
+	Context context.Context
 	Envs []string
 	DirectCommand string
 	ResourceName string
@@ -174,14 +175,14 @@ func (e *Executor) RunOnRawData(opts *CommandInvocation, inData []byte) ([]byte,
 	ib := bytes.NewBuffer(inData)
 	var ob bytes.Buffer
 	var eb bytes.Buffer
-	if state, err := e.Run(context.Background(), ib, opts, &ob, &eb); err != nil {
+	if state, err := e.Run(ib, opts, &ob, &eb); err != nil {
 		return nil, nil, nil, err
 	} else {
 		return ob.Bytes(), eb.Bytes(), state, err
 	}
 }
 
-func (e *Executor) Run(ctx context.Context, ib io.Reader, opts *CommandInvocation, ob io.Writer, eb io.Writer) (*ExecutionState, error) {
+func (e *Executor) Run(ib io.Reader, opts *CommandInvocation, ob io.Writer, eb io.Writer) (*ExecutionState, error) {
 	startTime := time.Now()
 	if descriptor, _, _, err := e.ResolveCommandDescriptor(opts); err == nil {
 		if cmds, err := buildExecCmds(descriptor); err == nil {
