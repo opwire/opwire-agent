@@ -1,13 +1,12 @@
 package invokers
 
 import(
+	"context"
 	"fmt"
 	"bytes"
 	"io"
-	"io/ioutil"
 	"log"
 	"os/exec"
-	"sync"
 	"time"
 	"github.com/opwire/opwire-agent/utils"
 )
@@ -175,14 +174,14 @@ func (e *Executor) RunOnRawData(opts *CommandInvocation, inData []byte) ([]byte,
 	ib := bytes.NewBuffer(inData)
 	var ob bytes.Buffer
 	var eb bytes.Buffer
-	if state, err := e.Run(ib, opts, &ob, &eb); err != nil {
+	if state, err := e.Run(context.Background(), ib, opts, &ob, &eb); err != nil {
 		return nil, nil, nil, err
 	} else {
 		return ob.Bytes(), eb.Bytes(), state, err
 	}
 }
 
-func (e *Executor) Run(ib io.Reader, opts *CommandInvocation, ob io.Writer, eb io.Writer) (*ExecutionState, error) {
+func (e *Executor) Run(ctx context.Context, ib io.Reader, opts *CommandInvocation, ob io.Writer, eb io.Writer) (*ExecutionState, error) {
 	startTime := time.Now()
 	if descriptor, _, _, err := e.ResolveCommandDescriptor(opts); err == nil {
 		if cmds, err := buildExecCmds(descriptor); err == nil {
@@ -309,37 +308,4 @@ func runCommand(ib io.Reader, ob io.Writer, eb io.Writer, cmdObject *exec.Cmd) e
 		return err
 	}
 	return cmdObject.Wait()
-}
-
-func runSingleCommand(cmdObject *exec.Cmd, inData []byte) ([]byte, []byte, error) {
-	var outData []byte
-	var errData []byte
-	
-	inPipe, _ := cmdObject.StdinPipe()
-	outPipe, _ := cmdObject.StdoutPipe()
-	errPipe, _ := cmdObject.StderrPipe()
-
-	cmdObject.Start()
-
-	wg := sync.WaitGroup{}
-	wg.Add(2)
-
-	go func() {
-		defer wg.Done()
-		if inData != nil {
-			inPipe.Write(inData)
-			inPipe.Close()
-		}
-	}()
-
-	go func() {
-		defer wg.Done()
-		outData, _ = ioutil.ReadAll(outPipe)
-		errData, _ = ioutil.ReadAll(errPipe)
-		cmdObject.Wait()
-	}()
-
-	wg.Wait()
-
-	return outData, errData, nil
 }

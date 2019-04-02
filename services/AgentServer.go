@@ -25,7 +25,7 @@ type CommandExecutor interface {
 	ResolveCommandDescriptor(opts *invokers.CommandInvocation) (descriptor *invokers.CommandDescriptor, resourceName *string, methodName *string, err error)
 	GetSettings(resourceName string) []string
 	StoreSettings(prefix string, settings map[string]interface{}, format string, resourceName string) (error)
-	Run(io.Reader, *invokers.CommandInvocation, io.Writer, io.Writer) (*invokers.ExecutionState, error)
+	Run(context.Context, io.Reader, *invokers.CommandInvocation, io.Writer, io.Writer) (*invokers.ExecutionState, error)
 }
 
 type ServerEdition struct {
@@ -304,7 +304,7 @@ func (s *AgentServer) doExecuteCommand(w http.ResponseWriter, r *http.Request) {
 	}
 	var ob bytes.Buffer
 	var eb bytes.Buffer
-	state, err := s.executor.Run(ir, ci, &ob, &eb)
+	state, err := s.executor.Run(context.Background(), ir, ci, &ob, &eb)
 	if state != nil && state.IsTimeout {
 		w.Header().Set("Content-Type","text/plain")
 		w.WriteHeader(http.StatusRequestTimeout)
