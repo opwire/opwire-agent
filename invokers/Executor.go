@@ -204,6 +204,36 @@ func (e *Executor) Run(ib io.Reader, opts *CommandInvocation, ob io.Writer, eb i
 
 			timeout := GetExecutionTimeout(descriptor, opts)
 
+			if opts != nil && opts.Context != nil {
+				var ctx context.Context
+				var cancel context.CancelFunc
+
+				if timeout > 0 {
+					ctx, cancel = context.WithTimeout(opts.Context, time.Second * time.Duration(timeout))
+				} else {
+					ctx, cancel = context.WithCancel(opts.Context)
+				}
+				_ = cancel
+
+				c := make(chan error, 1)
+
+				go func() {
+					c <- pipeChain.Run(ib, ob, eb, cmds...)
+				}()
+
+				select {
+				case <-ctx.Done():
+					log.Printf("Execution is timeout after %f seconds. Error: %s\n", timeout, ctx.Err())
+					pipeChain.Stop()
+					err := <-c
+					state.IsTimeout = true
+					return state, err
+				case err := <-c:
+					state.Duration = time.Since(startTime)
+					return state, err
+				}
+			}
+
 			var timer *time.Timer
 			if timeout > 0 {
 				timer = time.AfterFunc(time.Second * time.Duration(timeout), func() {
