@@ -262,13 +262,11 @@ func (s *AgentServer) makeInvocationHandler() func(http.ResponseWriter, *http.Re
 			w.WriteHeader(http.StatusServiceUnavailable)
 			return
 		}
-		if isMethodAccepted(r.Method) {
-			s.doExecuteCommand(w, r)
-			return
-		} else {
+		if !isMethodAccepted(r.Method) {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
+		s.doExecuteCommand(w, r)
 	}
 }
 
