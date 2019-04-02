@@ -273,20 +273,7 @@ func (s *AgentServer) makeInvocationHandler() func(http.ResponseWriter, *http.Re
 }
 
 func (s *AgentServer) doExecuteCommand(w http.ResponseWriter, r *http.Request) {
-	isRunningSuppressed := false
-	isFailureExplained := false
-	isSuccessExplained := false
-	if s.explanationEnabled {
-		if len(r.Header.Get("Opwire-Suppress-Running")) > 0 {
-			isRunningSuppressed = true
-		}
-		if len(r.Header.Get("Opwire-Explain-Failure")) > 0 {
-			isFailureExplained = true
-		}
-		if len(r.Header.Get("Opwire-Explain-Success")) > 0 {
-			isSuccessExplained = true
-		}
-	}
+	expIn, expOut, expErr := s.getExplanationModes(r)
 
 	var ib bytes.Buffer
 	var tee io.Writer
@@ -308,7 +295,7 @@ func (s *AgentServer) doExecuteCommand(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	if isRunningSuppressed {
+	if expIn {
 		w.Header().Set("Content-Type","text/plain")
 		w.WriteHeader(http.StatusResetContent)
 		ioutil.ReadAll(ir)
@@ -325,7 +312,7 @@ func (s *AgentServer) doExecuteCommand(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
-		if isFailureExplained {
+		if expErr {
 			w.Header().Set("Content-Type","text/plain")
 			w.WriteHeader(http.StatusInternalServerError)
 			s.explainResult(w, &ib, ci, err, &ob, &eb)
@@ -337,7 +324,7 @@ func (s *AgentServer) doExecuteCommand(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(w, string(eb.Bytes()))
 		return
 	} else {
-		if isSuccessExplained {
+		if expOut {
 			w.Header().Set("Content-Type", "text/plain")
 			w.WriteHeader(http.StatusResetContent)
 			s.explainResult(w, &ib, ci, err, &ob, &eb)
@@ -349,6 +336,15 @@ func (s *AgentServer) doExecuteCommand(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(w, string(ob.Bytes()))
 		return
 	}
+}
+
+func (s *AgentServer) getExplanationModes(r *http.Request) (bool, bool, bool) {
+	if !s.explanationEnabled {
+		return false, false, false
+	}
+	return len(r.Header.Get("Opwire-Suppress-Running")) > 0,
+		len(r.Header.Get("Opwire-Explain-Success")) > 0,
+		len(r.Header.Get("Opwire-Explain-Failure")) > 0
 }
 
 func isMethodAccepted(method string) (bool) {
