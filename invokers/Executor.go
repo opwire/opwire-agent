@@ -14,7 +14,7 @@ import(
 const BLANK string = ""
 const MAIN_RESOURCE string = ":default-resource:"
 
-type TimeSecond int
+type TimeSecond float64
 
 type Executor struct {
 	resources map[string]*CommandEntrypoint
@@ -73,11 +73,11 @@ func NewExecutor(opts *ExecutorOptions) (*Executor, error) {
 
 func GetExecutionTimeout(cd *CommandDescriptor, ci *CommandInvocation) TimeSecond {
 	var timeout TimeSecond
-	if cd != nil {
+	if cd != nil && cd.ExecutionTimeout > 0 {
 		timeout = cd.ExecutionTimeout
-		if ci != nil && ci.ExecutionTimeout > 0 {
-			timeout = ci.ExecutionTimeout
-		}
+	}
+	if ci != nil && ci.ExecutionTimeout > 0 {
+		timeout = ci.ExecutionTimeout
 	}
 	return timeout
 }
@@ -202,7 +202,7 @@ func (e *Executor) Run(ib io.Reader, opts *CommandInvocation, ob io.Writer, eb i
 				timeout := GetExecutionTimeout(descriptor, opts)
 				if timeout > 0 {
 					timer = time.AfterFunc(time.Second * time.Duration(timeout), func() {
-						log.Printf("Execution is timeout after %d seconds\n", timeout)
+						log.Printf("Execution is timeout after %f seconds\n", timeout)
 						pipeChain.Stop()
 						state.IsTimeout = true
 					})

@@ -144,7 +144,7 @@ var configurationSchema string = `{
 					"type": "string"
 				},
 				"timeout": {
-					"type": "integer",
+					"type": "number",
 					"minimum": 0
 				}
 			},

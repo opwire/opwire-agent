@@ -275,17 +275,6 @@ func (s *AgentServer) makeInvocationHandler() func(http.ResponseWriter, *http.Re
 func (s *AgentServer) doExecuteCommand(w http.ResponseWriter, r *http.Request) {
 	expIn, expOut, expErr := s.getExplanationModes(r)
 
-	var ctx context.Context
-	var cancel context.CancelFunc
-
-	timeout, err := time.ParseDuration(r.Header.Get("Opwire-Execution-Timeout"))
-	if err == nil {
-			ctx, cancel = context.WithTimeout(context.Background(), timeout)
-	} else {
-			ctx, cancel = context.WithCancel(context.Background())
-	}
-	defer cancel()
-
 	var ib bytes.Buffer
 	var tee io.Writer
 	if s.explanationEnabled {
@@ -306,7 +295,6 @@ func (s *AgentServer) doExecuteCommand(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	ci.Context = ctx
 	if expIn {
 		w.Header().Set("Content-Type","text/plain")
 		w.WriteHeader(http.StatusResetContent)
@@ -411,6 +399,13 @@ func (s *AgentServer) buildCommandInvocation(r *http.Request) (*invokers.Command
 	if s.options != nil && len(s.options.DirectCommand) > 0 {
 		ci.DirectCommand = s.options.DirectCommand
 	}
+	// determine customized execution timeout
+	timeout, err := time.ParseDuration(r.Header.Get("Opwire-Execution-Timeout"))
+	if err == nil && timeout > 0 {
+		ci.ExecutionTimeout = invokers.TimeSecond(timeout.Seconds())
+	}
+	// create the Context
+	ci.Context = r.Context()
 	// return the CommandInvocation reference
 	return ci, nil
 }
