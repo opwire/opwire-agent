@@ -273,11 +273,7 @@ func (s *AgentServer) makeInvocationHandler() func(http.ResponseWriter, *http.Re
 func (s *AgentServer) doExecuteCommand(w http.ResponseWriter, r *http.Request) {
 	expIn, expOut, expErr := s.getExplanationModes(r)
 
-	var ib bytes.Buffer
-	var tee io.Writer
-	if s.explanationEnabled {
-		tee = &ib
-	}
+	ib, tee := s.generateTeeBuffer()
 	ir, irErr := s.buildCommandStdinReader(r, tee)
 	if irErr != nil {
 		w.Header().Set("X-Error-Message", irErr.Error())
@@ -334,6 +330,15 @@ func (s *AgentServer) doExecuteCommand(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(w, string(ob.Bytes()))
 		return
 	}
+}
+
+func (s *AgentServer) generateTeeBuffer() (bytes.Buffer, io.Writer) {
+	var ib bytes.Buffer
+	var tee io.Writer
+	if s.explanationEnabled {
+		tee = &ib
+	}
+	return ib, tee
 }
 
 func (s *AgentServer) getExplanationModes(r *http.Request) (bool, bool, bool) {
