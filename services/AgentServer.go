@@ -18,6 +18,7 @@ import (
 	"github.com/opwire/opwire-agent/config"
 	"github.com/opwire/opwire-agent/invokers"
 	"github.com/opwire/opwire-agent/utils"
+	"golang.org/x/sync/singleflight"
 )
 
 type CommandExecutor interface {
@@ -257,6 +258,7 @@ func (s *AgentServer) makeHealthCheckHandler() func(http.ResponseWriter, *http.R
 }
 
 func (s *AgentServer) makeInvocationHandler() func(http.ResponseWriter, *http.Request) {
+	g := new(singleflight.Group)
 	return func (w http.ResponseWriter, r *http.Request) {
 		if !s.isReady() {
 			w.WriteHeader(http.StatusServiceUnavailable)
@@ -266,14 +268,15 @@ func (s *AgentServer) makeInvocationHandler() func(http.ResponseWriter, *http.Re
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
-		s.doExecuteCommand(w, r)
+		s.doExecuteCommand(w, r, g)
 	}
 }
 
-func (s *AgentServer) doExecuteCommand(w http.ResponseWriter, r *http.Request) {
+func (s *AgentServer) doExecuteCommand(w http.ResponseWriter, r *http.Request, g *singleflight.Group) {
 	expIn, expOut, expErr := s.getExplanationModes(r)
 
 	ib, tee := s.generateTeeBuffer()
+
 	ir, irErr := s.buildCommandStdinReader(r, tee)
 	if irErr != nil {
 		w.Header().Set("X-Error-Message", irErr.Error())
@@ -293,12 +296,29 @@ func (s *AgentServer) doExecuteCommand(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type","text/plain")
 		w.WriteHeader(http.StatusResetContent)
 		ioutil.ReadAll(ir)
-		s.explainRequest(w, &ib, ci)
+		s.explainRequest(w, ib, ci)
 		return
 	}
 	var ob bytes.Buffer
 	var eb bytes.Buffer
-	state, err := s.executor.Run(ir, ci, &ob, &eb)
+	reqId := r.Header.Get(OPWIRE_REQUEST_ID_NAME)
+	var state *invokers.ExecutionState
+	var err error
+	if len(reqId) > 0 {
+		_state, _err, shared := g.Do(reqId, func() (interface{}, error) {
+			return s.executor.Run(ir, ci, &ob, &eb)
+		})
+		state = _state.(*invokers.ExecutionState)
+		err = _err
+		if !shared {
+			log.Printf("request[%s] is the original execution", reqId)
+		} else {
+			log.Printf("request[%s] is the shared execution", reqId)
+		}
+	} else {
+		state, err = s.executor.Run(ir, ci, &ob, &eb)
+	}
+
 	if state != nil && state.IsTimeout {
 		w.Header().Set("Content-Type","text/plain")
 		w.WriteHeader(http.StatusRequestTimeout)
@@ -309,7 +329,7 @@ func (s *AgentServer) doExecuteCommand(w http.ResponseWriter, r *http.Request) {
 		if expErr {
 			w.Header().Set("Content-Type","text/plain")
 			w.WriteHeader(http.StatusInternalServerError)
-			s.explainResult(w, &ib, ci, err, &ob, &eb)
+			s.explainResult(w, ib, ci, err, &ob, &eb)
 			return
 		}
 		w.Header().Set("Content-Type","text/plain")
@@ -321,7 +341,7 @@ func (s *AgentServer) doExecuteCommand(w http.ResponseWriter, r *http.Request) {
 		if expOut {
 			w.Header().Set("Content-Type", "text/plain")
 			w.WriteHeader(http.StatusResetContent)
-			s.explainResult(w, &ib, ci, err, &ob, &eb)
+			s.explainResult(w, ib, ci, err, &ob, &eb)
 			return
 		}
 		w.Header().Set("Content-Type", "text/plain")
@@ -332,13 +352,13 @@ func (s *AgentServer) doExecuteCommand(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *AgentServer) generateTeeBuffer() (bytes.Buffer, io.Writer) {
+func (s *AgentServer) generateTeeBuffer() (*bytes.Buffer, io.Writer) {
 	var ib bytes.Buffer
 	var tee io.Writer
 	if s.explanationEnabled {
 		tee = &ib
 	}
-	return ib, tee
+	return &ib, tee
 }
 
 func (s *AgentServer) getExplanationModes(r *http.Request) (bool, bool, bool) {
@@ -633,3 +653,6 @@ const OPWIRE_REQUEST_PREFIX string = "OPWIRE_REQUEST"
 const OPWIRE_REQUEST_PREFIX_PLUS string = OPWIRE_REQUEST_PREFIX + "="
 const OPWIRE_SETTINGS_PREFIX string = "OPWIRE_SETTINGS"
 const OPWIRE_SETTINGS_PREFIX_PLUS string = OPWIRE_SETTINGS_PREFIX + "="
+
+const OPWIRE_REQUEST_ID_NAME string = "Opwire-Request-Id"
+const OPWIRE_SECTION_ID_NAME string = "Opwire-Section-Id"
