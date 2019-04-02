@@ -186,40 +186,42 @@ func (e *Executor) Run(ib io.Reader, opts *CommandInvocation, ob io.Writer, eb i
 	startTime := time.Now()
 	if descriptor, _, _, err := e.ResolveCommandDescriptor(opts); err == nil {
 		if cmds, err := buildExecCmds(descriptor); err == nil {
+			count := len(cmds)
+			if count == 0 {
+				return nil, fmt.Errorf("Command not found")
+			}
+
 			if opts != nil && opts.Envs != nil {
 				envs := e.buildEnvs(opts)
 				for _, cmd := range cmds {
 					cmd.Env = envs
 				}
 			}
-			count := len(cmds)
-			if count > 0 {
-				state := &ExecutionState{}
-				constructor := e.GetNewPipeChain()
-				pipeChain := constructor()
 
-				var timer *time.Timer
-				timeout := GetExecutionTimeout(descriptor, opts)
-				if timeout > 0 {
-					timer = time.AfterFunc(time.Second * time.Duration(timeout), func() {
-						log.Printf("Execution is timeout after %f seconds\n", timeout)
-						pipeChain.Stop()
-						state.IsTimeout = true
-					})
-				}
+			state := &ExecutionState{}
+			constructor := e.GetNewPipeChain()
+			pipeChain := constructor()
 
-				err := pipeChain.Run(ib, ob, eb, cmds...)
+			timeout := GetExecutionTimeout(descriptor, opts)
 
-				if timer != nil {
-					timer.Stop()
-				}
-
-				state.Duration = time.Since(startTime)
-
-				return state, err
-			} else {
-				return nil, fmt.Errorf("Command not found")
+			var timer *time.Timer
+			if timeout > 0 {
+				timer = time.AfterFunc(time.Second * time.Duration(timeout), func() {
+					log.Printf("Execution is timeout after %f seconds\n", timeout)
+					pipeChain.Stop()
+					state.IsTimeout = true
+				})
 			}
+
+			err := pipeChain.Run(ib, ob, eb, cmds...)
+
+			if timer != nil {
+				timer.Stop()
+			}
+
+			state.Duration = time.Since(startTime)
+
+			return state, err
 		} else {
 			return nil, err
 		}
