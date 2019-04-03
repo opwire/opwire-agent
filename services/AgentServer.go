@@ -49,12 +49,12 @@ type AgentServer struct {
 	httpServer *http.Server
 	httpRouter *mux.Router
 	httpOptions *httpServerOptions
+	flightGroup *singleflight.Group
 	reqSerializer *ReqSerializer
 	stateStore *StateStore
 	executor CommandExecutor
-	listeningLock int32
-	initialized bool
 	options *ServerOptions
+	listeningLock int32
 	explanationEnabled bool
 }
 
@@ -127,7 +127,7 @@ func NewAgentServer(opts *ServerOptions) (s *AgentServer, err error) {
 	}
 
 	// creates a singleflight group
-	g := new(singleflight.Group)
+	s.flightGroup = new(singleflight.Group)
 
 	// defines HTTP request invokers
 	baseUrl := buildBaseUrl(conf)
@@ -135,10 +135,10 @@ func NewAgentServer(opts *ServerOptions) (s *AgentServer, err error) {
 	s.httpRouter.HandleFunc(CTRL_BASEURL + `health`, s.makeHealthCheckHandler())
 	s.httpRouter.HandleFunc(CTRL_BASEURL + `lock`, s.makeLockServiceHandler(true))
 	s.httpRouter.HandleFunc(CTRL_BASEURL + `unlock`, s.makeLockServiceHandler(false))
-	s.httpRouter.HandleFunc(baseUrl + `/{resourceName:` + config.RESOURCE_NAME_PATTERN + `}`, s.makeInvocationHandler(g))
-	s.httpRouter.HandleFunc(baseUrl + `/`, s.makeInvocationHandler(g))
+	s.httpRouter.HandleFunc(baseUrl + `/{resourceName:` + config.RESOURCE_NAME_PATTERN + `}`, s.makeInvocationHandler())
+	s.httpRouter.HandleFunc(baseUrl + `/`, s.makeInvocationHandler())
 	if len(baseUrl) > 0 {
-		s.httpRouter.HandleFunc(baseUrl, s.makeInvocationHandler(g))
+		s.httpRouter.HandleFunc(baseUrl, s.makeInvocationHandler())
 	}
 
 	urlPaths := utils.SortDesc(utils.Keys(opts.StaticPath))
@@ -154,9 +154,6 @@ func NewAgentServer(opts *ServerOptions) (s *AgentServer, err error) {
 	s.httpOptions = new(httpServerOptions)
 	s.httpOptions.Addr = buildHttpAddr(opts, conf)
 	s.httpOptions.MaxHeaderBytes = 1 << 22 // new default: 4MB
-
-	// marks this instance has been initialized properly
-	s.initialized = true
 
 	// other configurations
 	if conf != nil && conf.Agent != nil && conf.Agent.ExplanationEnabled != nil {
@@ -267,7 +264,7 @@ func (s *AgentServer) makeHealthCheckHandler() func(http.ResponseWriter, *http.R
 	}
 }
 
-func (s *AgentServer) makeInvocationHandler(g *singleflight.Group) func(http.ResponseWriter, *http.Request) {
+func (s *AgentServer) makeInvocationHandler() func(http.ResponseWriter, *http.Request) {
 	return func (w http.ResponseWriter, r *http.Request) {
 		if !s.isReady() {
 			w.WriteHeader(http.StatusServiceUnavailable)
@@ -277,11 +274,11 @@ func (s *AgentServer) makeInvocationHandler(g *singleflight.Group) func(http.Res
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
-		s.doExecuteCommand(w, r, g)
+		s.doExecuteCommand(w, r)
 	}
 }
 
-func (s *AgentServer) doExecuteCommand(w http.ResponseWriter, r *http.Request, g *singleflight.Group) {
+func (s *AgentServer) doExecuteCommand(w http.ResponseWriter, r *http.Request) {
 	expIn, expOut, expErr := s.getExplanationModes(r)
 
 	ib, tee := s.generateTeeBuffer()
@@ -312,6 +309,7 @@ func (s *AgentServer) doExecuteCommand(w http.ResponseWriter, r *http.Request, g
 	var eb bytes.Buffer
 	var state *invokers.ExecutionState
 	var err error
+	g := s.flightGroup
 	reqId, singleFlightId := s.buildRequestFlightId(r)
 	if g != nil && len(singleFlightId) > 0 {
 		_state, _err, shared := g.Do(singleFlightId, func() (interface{}, error) {
