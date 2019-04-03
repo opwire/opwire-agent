@@ -47,8 +47,8 @@ type ServerOptions struct {
 type AgentServer struct {
 	configManager *config.Manager
 	httpServer *http.Server
-	httpServeAddr string
-	httpServeMux *mux.Router
+	httpRouter *mux.Router
+	httpOptions *httpServerOptions
 	reqSerializer *ReqSerializer
 	stateStore *StateStore
 	executor CommandExecutor
@@ -56,6 +56,11 @@ type AgentServer struct {
 	initialized bool
 	options *ServerOptions
 	explanationEnabled bool
+}
+
+type httpServerOptions struct {
+	Addr string
+	MaxHeaderBytes int
 }
 
 func NewAgentServer(opts *ServerOptions) (s *AgentServer, err error) {
@@ -126,14 +131,14 @@ func NewAgentServer(opts *ServerOptions) (s *AgentServer, err error) {
 
 	// defines HTTP request invokers
 	baseUrl := buildBaseUrl(conf)
-	s.httpServeMux = mux.NewRouter()
-	s.httpServeMux.HandleFunc(CTRL_BASEURL + `health`, s.makeHealthCheckHandler())
-	s.httpServeMux.HandleFunc(CTRL_BASEURL + `lock`, s.makeLockServiceHandler(true))
-	s.httpServeMux.HandleFunc(CTRL_BASEURL + `unlock`, s.makeLockServiceHandler(false))
-	s.httpServeMux.HandleFunc(baseUrl + `/{resourceName:` + config.RESOURCE_NAME_PATTERN + `}`, s.makeInvocationHandler(g))
-	s.httpServeMux.HandleFunc(baseUrl + `/`, s.makeInvocationHandler(g))
+	s.httpRouter = mux.NewRouter()
+	s.httpRouter.HandleFunc(CTRL_BASEURL + `health`, s.makeHealthCheckHandler())
+	s.httpRouter.HandleFunc(CTRL_BASEURL + `lock`, s.makeLockServiceHandler(true))
+	s.httpRouter.HandleFunc(CTRL_BASEURL + `unlock`, s.makeLockServiceHandler(false))
+	s.httpRouter.HandleFunc(baseUrl + `/{resourceName:` + config.RESOURCE_NAME_PATTERN + `}`, s.makeInvocationHandler(g))
+	s.httpRouter.HandleFunc(baseUrl + `/`, s.makeInvocationHandler(g))
 	if len(baseUrl) > 0 {
-		s.httpServeMux.HandleFunc(baseUrl, s.makeInvocationHandler(g))
+		s.httpRouter.HandleFunc(baseUrl, s.makeInvocationHandler(g))
 	}
 
 	urlPaths := utils.SortDesc(utils.Keys(opts.StaticPath))
@@ -141,12 +146,14 @@ func NewAgentServer(opts *ServerOptions) (s *AgentServer, err error) {
 		filePath := opts.StaticPath[urlPath]
 		if utils.IsExists(filePath) {
 			log.Printf("Map [%s] -> [%s]", urlPath, filePath)
-			s.httpServeMux.PathPrefix(urlPath).Handler(http.StripPrefix(urlPath, http.FileServer(http.Dir(filePath))))
+			s.httpRouter.PathPrefix(urlPath).Handler(http.StripPrefix(urlPath, http.FileServer(http.Dir(filePath))))
 		}
 	}
 
 	// creates a new HTTP server
-	s.httpServeAddr = buildHttpAddr(opts, conf)
+	s.httpOptions = new(httpServerOptions)
+	s.httpOptions.Addr = buildHttpAddr(opts, conf)
+	s.httpOptions.MaxHeaderBytes = 1 << 22 // new default: 4MB
 
 	// marks this instance has been initialized properly
 	s.initialized = true
@@ -169,9 +176,9 @@ func NewAgentServer(opts *ServerOptions) (s *AgentServer, err error) {
 func (s *AgentServer) Start() (error) {
 	if s.httpServer == nil {
 		s.httpServer = &http.Server{
-			Addr:           s.httpServeAddr,
-			MaxHeaderBytes: 1 << 22, // Max header of 4MB
-			Handler:        s.httpServeMux,
+			Addr: s.httpOptions.Addr,
+			MaxHeaderBytes: s.httpOptions.MaxHeaderBytes,
+			Handler: s.httpRouter,
 		}
 	}
 	// listens and waiting for TERM signal for shutting down

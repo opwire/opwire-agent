@@ -15,7 +15,7 @@ func TestNewAgentServer(t *testing.T) {
 		assert.Nil(t, err)
 
 		assert.Nil(t, s.httpServer)
-		assert.NotNil(t, s.httpServeMux)
+		assert.NotNil(t, s.httpRouter)
 		assert.NotNil(t, s.reqSerializer)
 		assert.NotNil(t, s.stateStore)
 		assert.NotNil(t, s.executor)
