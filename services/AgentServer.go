@@ -121,16 +121,19 @@ func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
 		return nil, err
 	}
 
+	// creates a singleflight group
+	g := new(singleflight.Group)
+
 	// defines HTTP request invokers
 	baseUrl := buildBaseUrl(conf)
 	s.httpServeMux = mux.NewRouter()
 	s.httpServeMux.HandleFunc(CTRL_BASEURL + `health`, s.makeHealthCheckHandler())
 	s.httpServeMux.HandleFunc(CTRL_BASEURL + `lock`, s.makeLockServiceHandler(true))
 	s.httpServeMux.HandleFunc(CTRL_BASEURL + `unlock`, s.makeLockServiceHandler(false))
-	s.httpServeMux.HandleFunc(baseUrl + `/{resourceName:` + config.RESOURCE_NAME_PATTERN + `}`, s.makeInvocationHandler())
-	s.httpServeMux.HandleFunc(baseUrl + `/`, s.makeInvocationHandler())
+	s.httpServeMux.HandleFunc(baseUrl + `/{resourceName:` + config.RESOURCE_NAME_PATTERN + `}`, s.makeInvocationHandler(g))
+	s.httpServeMux.HandleFunc(baseUrl + `/`, s.makeInvocationHandler(g))
 	if len(baseUrl) > 0 {
-		s.httpServeMux.HandleFunc(baseUrl, s.makeInvocationHandler())
+		s.httpServeMux.HandleFunc(baseUrl, s.makeInvocationHandler(g))
 	}
 
 	urlPaths := utils.SortDesc(utils.Keys(c.StaticPath))
@@ -257,8 +260,7 @@ func (s *AgentServer) makeHealthCheckHandler() func(http.ResponseWriter, *http.R
 	}
 }
 
-func (s *AgentServer) makeInvocationHandler() func(http.ResponseWriter, *http.Request) {
-	g := new(singleflight.Group)
+func (s *AgentServer) makeInvocationHandler(g *singleflight.Group) func(http.ResponseWriter, *http.Request) {
 	return func (w http.ResponseWriter, r *http.Request) {
 		if !s.isReady() {
 			w.WriteHeader(http.StatusServiceUnavailable)
@@ -301,10 +303,10 @@ func (s *AgentServer) doExecuteCommand(w http.ResponseWriter, r *http.Request, g
 	}
 	var ob bytes.Buffer
 	var eb bytes.Buffer
-	reqId, singleFlightId := s.buildRequestFlightId(r)
 	var state *invokers.ExecutionState
 	var err error
-	if len(singleFlightId) > 0 {
+	reqId, singleFlightId := s.buildRequestFlightId(r)
+	if g != nil && len(singleFlightId) > 0 {
 		_state, _err, shared := g.Do(singleFlightId, func() (interface{}, error) {
 			return s.executor.Run(ir, ci, &ob, &eb)
 		})
@@ -428,7 +430,7 @@ func (s *AgentServer) buildCommandInvocation(r *http.Request) (*invokers.Command
 		ci.DirectCommand = s.options.DirectCommand
 	}
 	// determine customized execution timeout
-	timeout, err := time.ParseDuration(r.Header.Get("Opwire-Execution-Timeout"))
+	timeout, err := time.ParseDuration(r.Header.Get(OPWIRE_EXECUTION_TIMEOUT))
 	if err == nil && timeout > 0 {
 		ci.ExecutionTimeout = invokers.TimeSecond(timeout.Seconds())
 	}
@@ -660,4 +662,4 @@ const OPWIRE_SETTINGS_PREFIX string = "OPWIRE_SETTINGS"
 const OPWIRE_SETTINGS_PREFIX_PLUS string = OPWIRE_SETTINGS_PREFIX + "="
 
 const OPWIRE_REQUEST_ID_NAME string = "Opwire-Request-Id"
-const OPWIRE_SECTION_ID_NAME string = "Opwire-Section-Id"
+const OPWIRE_EXECUTION_TIMEOUT string = "Opwire-Execution-Timeout"
