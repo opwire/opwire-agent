@@ -28,11 +28,7 @@ func (p *PipeChain) Run(ib io.Reader, ob io.Writer, eb io.Writer, chain ...*exec
 	p.stopChan = make(chan int)
 	p.stopFlag = false
 
-	defer func() {
-		if p.stopChan != nil {
-			close(p.stopChan)
-		}
-	}()
+	defer p.closeChannel()
 
 	go func() {
 		sign := <- p.stopChan
@@ -66,6 +62,14 @@ func (p *PipeChain) Run(ib io.Reader, ob io.Writer, eb io.Writer, chain ...*exec
 func (p *PipeChain) Stop() {
 	if p.stopChan != nil {
 		p.stopChan <- 1
+	}
+	p.closeChannel()
+}
+
+func (p *PipeChain) closeChannel() {
+	if p.stopChan != nil {
+		close(p.stopChan)
+		p.stopChan = nil
 	}
 }
 
