@@ -439,7 +439,7 @@ func (s *AgentServer) buildCommandInvocation(r *http.Request) (*invokers.Command
 	// determine customized execution timeout
 	timeout, err := time.ParseDuration(r.Header.Get(OPWIRE_EXECUTION_TIMEOUT))
 	if err == nil && timeout > 0 {
-		ci.ExecutionTimeout = invokers.TimeSecond(timeout.Seconds())
+		ci.ExecutionTimeout = invokers.ConvertDurationToSecond(timeout)
 	}
 	// create the Context
 	ci.Context = r.Context()

@@ -209,11 +209,11 @@ func (e *Executor) Run(ib io.Reader, opts *CommandInvocation, ob io.Writer, eb i
 				var cancel context.CancelFunc
 
 				if timeout > 0 {
-					ctx, cancel = context.WithTimeout(opts.Context, time.Second * time.Duration(timeout))
+					ctx, cancel = context.WithTimeout(opts.Context, ConvertSecondToDuration(timeout))
 				} else {
 					ctx, cancel = context.WithCancel(opts.Context)
 				}
-				_ = cancel
+				defer cancel() // call cancel as soon as the operations running in this Context complete
 
 				c := make(chan error, 1)
 
@@ -236,7 +236,7 @@ func (e *Executor) Run(ib io.Reader, opts *CommandInvocation, ob io.Writer, eb i
 
 			var timer *time.Timer
 			if timeout > 0 {
-				timer = time.AfterFunc(time.Second * time.Duration(timeout), func() {
+				timer = time.AfterFunc(ConvertSecondToDuration(timeout), func() {
 					log.Printf("Execution is timeout after %f seconds\n", timeout)
 					pipeChain.Stop()
 					state.IsTimeout = true
@@ -341,4 +341,12 @@ func runCommand(ib io.Reader, ob io.Writer, eb io.Writer, cmdObject *exec.Cmd) e
 		return err
 	}
 	return cmdObject.Wait()
+}
+
+func ConvertSecondToDuration(t TimeSecond) time.Duration {
+	return time.Duration(TimeSecond(time.Second) * t)
+}
+
+func ConvertDurationToSecond(t time.Duration) TimeSecond {
+	return TimeSecond(t.Seconds())
 }
