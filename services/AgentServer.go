@@ -288,7 +288,7 @@ func (s *AgentServer) doExecuteCommand(w http.ResponseWriter, r *http.Request, g
 
 	ir, irErr := s.buildCommandStdinReader(r, tee)
 	if irErr != nil {
-		w.Header().Set("X-Error-Message", irErr.Error())
+		w.Header().Set(RES_HEADER_ERROR_MESSAGE, irErr.Error())
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -297,7 +297,7 @@ func (s *AgentServer) doExecuteCommand(w http.ResponseWriter, r *http.Request, g
 	}
 	ci, ciErr := s.buildCommandInvocation(r)
 	if ciErr != nil {
-		w.Header().Set("X-Error-Message", ciErr.Error())
+		w.Header().Set(RES_HEADER_ERROR_MESSAGE, ciErr.Error())
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -342,7 +342,7 @@ func (s *AgentServer) doExecuteCommand(w http.ResponseWriter, r *http.Request, g
 			return
 		}
 		w.Header().Set("Content-Type","text/plain")
-		w.Header().Set("X-Error-Message", err.Error())
+		w.Header().Set(RES_HEADER_ERROR_MESSAGE, err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		io.WriteString(w, string(eb.Bytes()))
 		return
@@ -354,7 +354,7 @@ func (s *AgentServer) doExecuteCommand(w http.ResponseWriter, r *http.Request, g
 			return
 		}
 		w.Header().Set("Content-Type", "text/plain")
-		w.Header().Set("X-Exec-Duration", fmt.Sprintf("%f", state.Duration.Seconds()))
+		w.Header().Set(RES_HEADER_EXEC_DURATION, fmt.Sprintf("%f", state.Duration.Seconds()))
 		w.WriteHeader(http.StatusOK)
 		io.WriteString(w, string(ob.Bytes()))
 		return
@@ -374,9 +374,9 @@ func (s *AgentServer) getExplanationModes(r *http.Request) (bool, bool, bool) {
 	if !s.explanationEnabled {
 		return false, false, false
 	}
-	return len(r.Header.Get("Opwire-Suppress-Running")) > 0,
-		len(r.Header.Get("Opwire-Explain-Success")) > 0,
-		len(r.Header.Get("Opwire-Explain-Failure")) > 0
+	return len(r.Header.Get(REQ_HEADER_SUPPRESS_EXECUTION)) > 0,
+		len(r.Header.Get(REQ_HEADER_EXPLAIN_SUCCESS)) > 0,
+		len(r.Header.Get(REQ_HEADER_EXPLAIN_FAILURE)) > 0
 }
 
 func isMethodAccepted(method string) (bool) {
@@ -402,7 +402,7 @@ func normalizeMethod(method string) (string, bool) {
 }
 
 func (s *AgentServer) buildRequestFlightId(r *http.Request) (string, string) {
-	reqId := r.Header.Get(OPWIRE_REQUEST_ID_NAME)
+	reqId := r.Header.Get(REQ_HEADER_REQUEST_ID_NAME)
 	return reqId, reqId
 }
 
@@ -437,7 +437,7 @@ func (s *AgentServer) buildCommandInvocation(r *http.Request) (*invokers.Command
 		ci.DirectCommand = s.options.DirectCommand
 	}
 	// determine customized execution timeout
-	timeout, err := time.ParseDuration(r.Header.Get(OPWIRE_EXECUTION_TIMEOUT))
+	timeout, err := time.ParseDuration(r.Header.Get(REQ_HEADER_EXECUTION_TIMEOUT))
 	if err == nil && timeout > 0 {
 		ci.ExecutionTimeout = invokers.ConvertDurationToSecond(timeout)
 	}
@@ -668,5 +668,11 @@ const OPWIRE_REQUEST_PREFIX_PLUS string = OPWIRE_REQUEST_PREFIX + "="
 const OPWIRE_SETTINGS_PREFIX string = "OPWIRE_SETTINGS"
 const OPWIRE_SETTINGS_PREFIX_PLUS string = OPWIRE_SETTINGS_PREFIX + "="
 
-const OPWIRE_REQUEST_ID_NAME string = "Opwire-Request-Id"
-const OPWIRE_EXECUTION_TIMEOUT string = "Opwire-Execution-Timeout"
+const REQ_HEADER_REQUEST_ID_NAME string = "Opwire-Request-Id"
+const REQ_HEADER_EXECUTION_TIMEOUT string = "Opwire-Execution-Timeout"
+const REQ_HEADER_SUPPRESS_EXECUTION string = "Opwire-Suppress-Running"
+const REQ_HEADER_EXPLAIN_SUCCESS string = "Opwire-Explain-Success"
+const REQ_HEADER_EXPLAIN_FAILURE string = "Opwire-Explain-Failure"
+
+const RES_HEADER_ERROR_MESSAGE string = "X-Error-Message"
+const RES_HEADER_EXEC_DURATION string = "X-Exec-Duration"
