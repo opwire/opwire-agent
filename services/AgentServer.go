@@ -301,11 +301,11 @@ func (s *AgentServer) doExecuteCommand(w http.ResponseWriter, r *http.Request, g
 	}
 	var ob bytes.Buffer
 	var eb bytes.Buffer
-	reqId := r.Header.Get(OPWIRE_REQUEST_ID_NAME)
+	reqId, singleFlightId := s.buildRequestFlightId(r)
 	var state *invokers.ExecutionState
 	var err error
-	if len(reqId) > 0 {
-		_state, _err, shared := g.Do(reqId, func() (interface{}, error) {
+	if len(singleFlightId) > 0 {
+		_state, _err, shared := g.Do(singleFlightId, func() (interface{}, error) {
 			return s.executor.Run(ir, ci, &ob, &eb)
 		})
 		state = _state.(*invokers.ExecutionState)
@@ -390,6 +390,11 @@ func normalizeMethod(method string) (string, bool) {
 		return name, true
 	}
 	return name, false
+}
+
+func (s *AgentServer) buildRequestFlightId(r *http.Request) (string, string) {
+	reqId := r.Header.Get(OPWIRE_REQUEST_ID_NAME)
+	return reqId, reqId
 }
 
 func (s *AgentServer) buildCommandInvocation(r *http.Request) (*invokers.CommandInvocation, error) {
