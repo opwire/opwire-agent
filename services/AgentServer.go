@@ -58,16 +58,16 @@ type AgentServer struct {
 	explanationEnabled bool
 }
 
-func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
-	if c == nil {
-		c = &ServerOptions{}
+func NewAgentServer(opts *ServerOptions) (s *AgentServer, err error) {
+	if opts == nil {
+		opts = &ServerOptions{}
 	}
 
 	// creates a new server instance
 	s = &AgentServer{}
 
 	// remember server options
-	s.options = c
+	s.options = opts
 
 	// creates a new command executor
 	s.executor, err = invokers.NewExecutor(&invokers.ExecutorOptions{})
@@ -87,7 +87,7 @@ func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
 	var conf *config.Configuration
 
 	// determine configuration path
-	s.configManager = config.NewManager(c.Edition.Version, c.ConfigPath)
+	s.configManager = config.NewManager(opts.Edition.Version, opts.ConfigPath)
 	conf, result, err := s.configManager.Load()
 	if err != nil {
 		return nil, err
@@ -136,9 +136,9 @@ func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
 		s.httpServeMux.HandleFunc(baseUrl, s.makeInvocationHandler(g))
 	}
 
-	urlPaths := utils.SortDesc(utils.Keys(c.StaticPath))
+	urlPaths := utils.SortDesc(utils.Keys(opts.StaticPath))
 	for _, urlPath := range urlPaths {
-		filePath := c.StaticPath[urlPath]
+		filePath := opts.StaticPath[urlPath]
 		if utils.IsExists(filePath) {
 			log.Printf("Map [%s] -> [%s]", urlPath, filePath)
 			s.httpServeMux.PathPrefix(urlPath).Handler(http.StripPrefix(urlPath, http.FileServer(http.Dir(filePath))))
@@ -146,7 +146,7 @@ func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
 	}
 
 	// creates a new HTTP server
-	s.httpServeAddr = buildHttpAddr(c, conf)
+	s.httpServeAddr = buildHttpAddr(opts, conf)
 
 	// marks this instance has been initialized properly
 	s.initialized = true
@@ -157,7 +157,7 @@ func NewAgentServer(c *ServerOptions) (s *AgentServer, err error) {
 	}
 
 	// starts the server by default
-	if !c.SuppressAutoStart {
+	if !opts.SuppressAutoStart {
 		if err = s.Start(); err != nil {
 			return nil, err
 		}
