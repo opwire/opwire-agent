@@ -14,7 +14,7 @@ func TestReqSerializer_encode(t *testing.T) {
 		assert.Nil(t, err)
 		assert.NotNil(t, rs)
 
-		expected := `{"header":{},"query":{},"params":null}`
+		expected := `{"path":"/query","method":"GET","header":{},"query":{},"params":null}`
 
 		req, req_err := http.NewRequest("GET", "/query", nil)
 		assert.Nil(t, req_err)
@@ -25,14 +25,14 @@ func TestReqSerializer_encode(t *testing.T) {
 		assert.NotNil(t, enc)
 
 		fmt.Sprintf("JSON: %s\n", string(enc))
-		assert.Equal(t, string(enc), expected)
+		assert.JSONEq(t, expected, string(enc))
 	})
 	t.Run("nonempty", func(t *testing.T) {
 		rs, err := NewReqSerializer()
 		assert.Nil(t, err)
 		assert.NotNil(t, rs)
 
-		expected := `{"header":{"X-Tags":["feature1","feature2"]},"query":{"id":["1001"],"status":["closed"],"type":["vehicle","car"]},"params":null}`
+		expected := `{"path":"/query","method":"GET","header":{"X-Tags":["feature1","feature2"]},"query":{"id":["1001"],"status":["closed"],"type":["vehicle","car"]},"params":null}`
 
 		req, req_err := http.NewRequest("GET", "/query?id=1001&type=vehicle&type=car&status=closed", nil)
 		assert.Nil(t, req_err)
@@ -46,7 +46,7 @@ func TestReqSerializer_encode(t *testing.T) {
 		assert.NotNil(t, enc)
 
 		fmt.Sprintf("JSON: %s\n", string(enc))
-		assert.Equal(t, string(enc), expected)
+		assert.JSONEq(t, expected, string(enc))
 	})
 }
 

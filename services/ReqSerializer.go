@@ -9,6 +9,8 @@ import (
 type ReqSerializer struct {}
 
 type RequestPacket struct {
+	Method *string `json:"method"`
+	Path *string `json:"path"`
 	Header http.Header `json:"header"`
 	Query  url.Values `json:"query"`
 	Params map[string][]string `json:"params"`
@@ -20,6 +22,8 @@ func NewReqSerializer() (*ReqSerializer, error) {
 
 func (s *ReqSerializer) Encode(r *http.Request) ([]byte, error) {
 	packet := &RequestPacket{
+		Method: &r.Method,
+		Path: &r.URL.Path,
 		Header: r.Header,
 		Query: r.URL.Query(),
 	}
