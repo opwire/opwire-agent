@@ -380,6 +380,9 @@ func (s *AgentServer) doExecuteCommand(w http.ResponseWriter, r *http.Request) {
 }
 
 func writeHeaderExecDuration(w http.ResponseWriter, state *invokers.ExecutionState) {
+	if state == nil || state.Duration == 0 {
+		return
+	}
 	w.Header().Set(RES_HEADER_EXEC_DURATION, fmt.Sprintf("%f", state.Duration.Seconds()))
 }
 
