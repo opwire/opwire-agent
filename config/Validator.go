@@ -205,6 +205,36 @@ var configurationSchema string = `{
 							"pattern": "^` + BASEURL_PATTERN + `$"
 						}
 					]
+				},
+				"concurrent-limit-enabled": {
+					"oneOf": [
+						{
+							"type": "null"
+						},
+						{
+							"type": "boolean"
+						}
+					]
+				},
+				"concurrent-limit-total": {
+					"oneOf": [
+						{
+							"type": "null"
+						},
+						{
+							"type": "integer"
+						}
+					]
+				},
+				"single-flight-enabled": {
+					"oneOf": [
+						{
+							"type": "null"
+						},
+						{
+							"type": "boolean"
+						}
+					]
 				}
 			},
 			"additionalProperties": false

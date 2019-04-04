@@ -18,7 +18,6 @@ import (
 	"github.com/opwire/opwire-agent/config"
 	"github.com/opwire/opwire-agent/invokers"
 	"github.com/opwire/opwire-agent/utils"
-	"golang.org/x/sync/singleflight"
 )
 
 type CommandExecutor interface {
@@ -49,7 +48,7 @@ type AgentServer struct {
 	httpServer *http.Server
 	httpRouter *mux.Router
 	httpOptions *httpServerOptions
-	flightGroup *singleflight.Group
+	reqRestrictor *ReqRestrictor
 	reqSerializer *ReqSerializer
 	stateStore *StateStore
 	executor CommandExecutor
@@ -104,16 +103,19 @@ func NewAgentServer(opts *ServerOptions) (s *AgentServer, err error) {
 		}
 		return nil, fmt.Errorf(strings.Join(errstrs, "\n - "))
 	}
+	if conf == nil {
+		conf = &config.Configuration{}
+	}
 
 	// register the main resource
-	if conf != nil && conf.Main != nil {
+	if conf.Main != nil {
 		resourceName := invokers.MAIN_RESOURCE
 		resource := conf.Main
 		s.importResource(resourceName, resource, conf.Settings, conf.SettingsFormat)
 	}
 
 	// register the sub-resources
-	if conf != nil && conf.Resources != nil {
+	if conf.Resources != nil {
 		for resourceName, resource := range conf.Resources {
 			s.importResource(resourceName, &resource, conf.Settings, conf.SettingsFormat)
 		}
@@ -126,8 +128,16 @@ func NewAgentServer(opts *ServerOptions) (s *AgentServer, err error) {
 		return nil, err
 	}
 
-	// creates a singleflight group
-	s.flightGroup = new(singleflight.Group)
+	// create a weighted semaphore
+	var reqRestrictorOpts ReqRestrictorOptions
+	if conf.HttpServer != nil {
+		reqRestrictorOpts = conf.HttpServer
+	}
+	s.reqRestrictor, err = NewReqRestrictor(reqRestrictorOpts)
+
+	if err != nil {
+		return nil, err
+	}
 
 	// defines HTTP request invokers
 	baseUrl := buildBaseUrl(conf)
@@ -156,7 +166,7 @@ func NewAgentServer(opts *ServerOptions) (s *AgentServer, err error) {
 	s.httpOptions.MaxHeaderBytes = 1 << 22 // new default: 4MB
 
 	// other configurations
-	if conf != nil && conf.Agent != nil && conf.Agent.ExplanationEnabled != nil {
+	if conf.Agent != nil && conf.Agent.ExplanationEnabled != nil {
 		s.explanationEnabled = *conf.Agent.ExplanationEnabled
 	}
 
@@ -299,7 +309,7 @@ func (s *AgentServer) doExecuteCommand(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if expIn {
-		w.Header().Set("Content-Type","text/plain")
+		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusResetContent)
 		ioutil.ReadAll(ir)
 		s.explainRequest(w, ib, ci)
@@ -309,37 +319,43 @@ func (s *AgentServer) doExecuteCommand(w http.ResponseWriter, r *http.Request) {
 	var eb bytes.Buffer
 	var state *invokers.ExecutionState
 	var err error
-	g := s.flightGroup
-	reqId, singleFlightId := s.buildRequestFlightId(r)
-	if g != nil && len(singleFlightId) > 0 {
-		_state, _err, shared := g.Do(singleFlightId, func() (interface{}, error) {
+
+	if s.reqRestrictor.HasSemaphore() {
+		if err := s.reqRestrictor.Acquire(1); err != nil {
+			w.Header().Set("Content-Type", "text/plain")
+			w.WriteHeader(http.StatusInternalServerError)
+			io.WriteString(w, fmt.Sprintf("Failed to acquire permits, error: [%v]", err))
+			return
+		}
+		defer s.reqRestrictor.Release(1)
+	}
+
+	reqId, reqGroup := s.extractRequestFlightId(r)
+	if s.reqRestrictor.HasSingleFlight() && len(reqGroup) > 0 {
+		_state, _err, shared := s.reqRestrictor.Filter(reqGroup, func() (interface{}, error) {
 			return s.executor.Run(ir, ci, &ob, &eb)
 		})
+		log.Printf("request[%s] is duplicated by key [%s]: %t", reqId, reqGroup, shared)
 		state = _state.(*invokers.ExecutionState)
 		err = _err
-		if !shared {
-			log.Printf("request[%s] is the original execution", reqId)
-		} else {
-			log.Printf("request[%s] is the shared execution", reqId)
-		}
 	} else {
 		state, err = s.executor.Run(ir, ci, &ob, &eb)
 	}
 
 	if state != nil && state.IsTimeout {
-		w.Header().Set("Content-Type","text/plain")
+		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusRequestTimeout)
 		io.WriteString(w, "Running processes are killed")
 		return
 	}
 	if err != nil {
 		if expErr {
-			w.Header().Set("Content-Type","text/plain")
+			w.Header().Set("Content-Type", "text/plain")
 			w.WriteHeader(http.StatusInternalServerError)
 			s.explainResult(w, ib, ci, err, &ob, &eb)
 			return
 		}
-		w.Header().Set("Content-Type","text/plain")
+		w.Header().Set("Content-Type", "text/plain")
 		w.Header().Set(RES_HEADER_ERROR_MESSAGE, err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		io.WriteString(w, string(eb.Bytes()))
@@ -399,7 +415,7 @@ func normalizeMethod(method string) (string, bool) {
 	return name, false
 }
 
-func (s *AgentServer) buildRequestFlightId(r *http.Request) (string, string) {
+func (s *AgentServer) extractRequestFlightId(r *http.Request) (string, string) {
 	reqId := r.Header.Get(REQ_HEADER_REQUEST_ID_NAME)
 	return reqId, reqId
 }

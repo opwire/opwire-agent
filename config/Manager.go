@@ -27,6 +27,9 @@ type ConfigHttpServer struct {
 	Host *string `json:"host"`
 	Port *uint `json:"port"`
 	BaseUrl *string `json:"baseurl"`
+	concurrentLimitEnabled *bool `json:"concurrent-limit-enabled"`
+	concurrentLimitTotal *int `json:"concurrent-limit-total"`
+	singleFlightEnabled *bool `json:"single-flight-enabled"`
 }
 
 type Manager struct {
@@ -96,4 +99,25 @@ func (m *Manager) Init(cfg *Configuration, result ValidationResult, err error) (
 		
 	}
 	return cfg, nil
+}
+
+func (c *ConfigHttpServer) ConcurrentLimitEnabled() bool {
+	if c.concurrentLimitEnabled == nil {
+		return false
+	}
+	return *c.concurrentLimitEnabled
+}
+
+func (c *ConfigHttpServer) ConcurrentLimitTotal() int {
+	if c.concurrentLimitTotal == nil {
+		return 0
+	}
+	return *c.concurrentLimitTotal
+}
+
+func (c *ConfigHttpServer) SingleFlightEnabled() bool {
+	if c.singleFlightEnabled == nil {
+		return false
+	}
+	return *c.singleFlightEnabled
 }
