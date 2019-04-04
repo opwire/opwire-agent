@@ -344,6 +344,7 @@ func (s *AgentServer) doExecuteCommand(w http.ResponseWriter, r *http.Request) {
 
 	if state != nil && state.IsTimeout {
 		w.Header().Set("Content-Type", "text/plain")
+		writeHeaderExecDuration(w, state)
 		w.WriteHeader(http.StatusRequestTimeout)
 		io.WriteString(w, "Running processes are killed")
 		return
@@ -351,11 +352,13 @@ func (s *AgentServer) doExecuteCommand(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if expErr {
 			w.Header().Set("Content-Type", "text/plain")
+			writeHeaderExecDuration(w, state)
 			w.WriteHeader(http.StatusInternalServerError)
 			s.explainResult(w, ib, ci, err, &ob, &eb)
 			return
 		}
 		w.Header().Set("Content-Type", "text/plain")
+		writeHeaderExecDuration(w, state)
 		w.Header().Set(RES_HEADER_ERROR_MESSAGE, err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		io.WriteString(w, string(eb.Bytes()))
@@ -363,16 +366,21 @@ func (s *AgentServer) doExecuteCommand(w http.ResponseWriter, r *http.Request) {
 	} else {
 		if expOut {
 			w.Header().Set("Content-Type", "text/plain")
+			writeHeaderExecDuration(w, state)
 			w.WriteHeader(http.StatusResetContent)
 			s.explainResult(w, ib, ci, err, &ob, &eb)
 			return
 		}
 		w.Header().Set("Content-Type", "text/plain")
-		w.Header().Set(RES_HEADER_EXEC_DURATION, fmt.Sprintf("%f", state.Duration.Seconds()))
+		writeHeaderExecDuration(w, state)
 		w.WriteHeader(http.StatusOK)
 		io.WriteString(w, string(ob.Bytes()))
 		return
 	}
+}
+
+func writeHeaderExecDuration(w http.ResponseWriter, state *invokers.ExecutionState) {
+	w.Header().Set(RES_HEADER_EXEC_DURATION, fmt.Sprintf("%f", state.Duration.Seconds()))
 }
 
 func (s *AgentServer) generateTeeBuffer() (*bytes.Buffer, io.Writer) {

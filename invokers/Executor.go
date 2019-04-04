@@ -227,6 +227,7 @@ func (e *Executor) Run(ib io.Reader, opts *CommandInvocation, ob io.Writer, eb i
 					pipeChain.Stop()
 					err := <-c
 					state.IsTimeout = true
+					state.Duration = time.Since(startTime)
 					return state, err
 				case err := <-c:
 					state.Duration = time.Since(startTime)
