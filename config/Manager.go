@@ -7,6 +7,7 @@ import (
 	"strings"
 	"github.com/opwire/opwire-agent/invokers"
 	"github.com/opwire/opwire-agent/storages"
+	"github.com/opwire/opwire-agent/utils"
 )
 
 type Configuration struct {
@@ -27,9 +28,16 @@ type ConfigHttpServer struct {
 	Host *string `json:"host"`
 	Port *uint `json:"port"`
 	BaseUrl *string `json:"baseurl"`
-	concurrentLimitEnabled *bool `json:"concurrent-limit-enabled"`
-	concurrentLimitTotal *int `json:"concurrent-limit-total"`
-	singleFlightEnabled *bool `json:"single-flight-enabled"`
+	MyConcurrentLimitEnabled *bool `json:"concurrent-limit-enabled"`
+	MyConcurrentLimitTotal *int `json:"concurrent-limit-total"`
+	MySingleFlightEnabled *bool `json:"single-flight-enabled"`
+	MySingleFlightReqIdName *string `json:"single-flight-req-id"`
+	MySingleFlightByMethod *bool `json:"single-flight-by-method"`
+	MySingleFlightByPath *bool `json:"single-flight-by-path"`
+	MySingleFlightByHeaders *string `json:"single-flight-by-headers"`
+	MySingleFlightByQueries *string `json:"single-flight-by-queries"`
+	MySingleFlightByBody *bool `json:"single-flight-by-body"`
+	MySingleFlightByUserIP *bool `json:"single-flight-by-userip"`
 }
 
 type Manager struct {
@@ -102,22 +110,71 @@ func (m *Manager) Init(cfg *Configuration, result ValidationResult, err error) (
 }
 
 func (c *ConfigHttpServer) ConcurrentLimitEnabled() bool {
-	if c.concurrentLimitEnabled == nil {
+	if c.MyConcurrentLimitEnabled == nil {
 		return false
 	}
-	return *c.concurrentLimitEnabled
+	return *c.MyConcurrentLimitEnabled
 }
 
 func (c *ConfigHttpServer) ConcurrentLimitTotal() int {
-	if c.concurrentLimitTotal == nil {
+	if c.MyConcurrentLimitTotal == nil {
 		return 0
 	}
-	return *c.concurrentLimitTotal
+	return *c.MyConcurrentLimitTotal
 }
 
 func (c *ConfigHttpServer) SingleFlightEnabled() bool {
-	if c.singleFlightEnabled == nil {
+	if c.MySingleFlightEnabled == nil {
+		return true
+	}
+	return *c.MySingleFlightEnabled
+}
+
+func (c *ConfigHttpServer) SingleFlightReqIdName() string {
+	if c.MySingleFlightReqIdName == nil {
+		return ""
+	}
+	return *c.MySingleFlightReqIdName
+}
+
+func (c *ConfigHttpServer) SingleFlightByMethod() bool {
+	if c.MySingleFlightByMethod == nil {
+		return true
+	}
+	return *c.MySingleFlightByMethod
+}
+
+func (c *ConfigHttpServer) SingleFlightByPath() bool {
+	if c.MySingleFlightByPath == nil {
+		return true
+	}
+	return *c.MySingleFlightByPath
+}
+
+func (c *ConfigHttpServer) SingleFlightByHeaders() []string {
+	if c.MySingleFlightByHeaders == nil {
+		return []string{}
+	}
+	return utils.Split(*c.MySingleFlightByHeaders, ",")
+}
+
+func (c *ConfigHttpServer) SingleFlightByQueries() []string {
+	if c.MySingleFlightByQueries == nil {
+		return []string{}
+	}
+	return utils.Split(*c.MySingleFlightByQueries, ",")
+}
+
+func (c *ConfigHttpServer) SingleFlightByBody() bool {
+	if c.MySingleFlightByBody == nil {
 		return false
 	}
-	return *c.singleFlightEnabled
+	return *c.MySingleFlightByBody
+}
+
+func (c *ConfigHttpServer) SingleFlightByUserIP() bool {
+	if c.MySingleFlightByUserIP == nil {
+		return false
+	}
+	return *c.MySingleFlightByUserIP
 }

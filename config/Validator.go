@@ -235,6 +235,76 @@ var configurationSchema string = `{
 							"type": "boolean"
 						}
 					]
+				},
+				"single-flight-req-id": {
+					"oneOf": [
+						{
+							"type": "null"
+						},
+						{
+							"type": "string"
+						}
+					]
+				},
+				"single-flight-by-method": {
+					"oneOf": [
+						{
+							"type": "null"
+						},
+						{
+							"type": "boolean"
+						}
+					]
+				},
+				"single-flight-by-path": {
+					"oneOf": [
+						{
+							"type": "null"
+						},
+						{
+							"type": "boolean"
+						}
+					]
+				},
+				"single-flight-by-headers": {
+					"oneOf": [
+						{
+							"type": "null"
+						},
+						{
+							"type": "string"
+						}
+					]
+				},
+				"single-flight-by-queries": {
+					"oneOf": [
+						{
+							"type": "null"
+						},
+						{
+							"type": "string"
+						}
+					]
+				},
+				"single-flight-by-body": {
+					"oneOf": [
+						{
+							"type": "null"
+						},
+						{
+							"type": "boolean"
+						}
+					]
+				},
+				"single-flight-by-userip": {
+					"oneOf": [
+						{
+							"type": "null"
+						},
+						{
+							"type": "boolean"
+						}
+					]
 				}
 			},
 			"additionalProperties": false

@@ -330,12 +330,10 @@ func (s *AgentServer) doExecuteCommand(w http.ResponseWriter, r *http.Request) {
 		defer s.reqRestrictor.Release(1)
 	}
 
-	reqId, reqGroup := s.extractRequestFlightId(r)
-	if s.reqRestrictor.HasSingleFlight() && len(reqGroup) > 0 {
-		_state, _err, shared := s.reqRestrictor.Filter(reqGroup, func() (interface{}, error) {
+	if s.reqRestrictor.HasSingleFlight() {
+		_state, _err, _ := s.reqRestrictor.FilterByDigest(r, func() (interface{}, error) {
 			return s.executor.Run(ir, ci, &ob, &eb)
 		})
-		log.Printf("request[%s] is duplicated by key [%s]: %t", reqId, reqGroup, shared)
 		state = _state.(*invokers.ExecutionState)
 		err = _err
 	} else {
