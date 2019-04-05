@@ -182,7 +182,7 @@ func (rr *ReqRestrictor) Digest(r *http.Request) string {
 
 	if p.HasUserIP {
 		userip, err := extractUserIP(r)
-		if err == nil {
+		if err == nil && userip != nil {
 			o = append(o, userip.String())
 		}
 	}

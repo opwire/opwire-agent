@@ -139,14 +139,32 @@ func (c *ConfigHttpServer) SingleFlightReqIdName() string {
 
 func (c *ConfigHttpServer) SingleFlightByMethod() bool {
 	if c.MySingleFlightByMethod == nil {
-		return true
+		if c.MySingleFlightReqIdName != nil && len(*c.MySingleFlightReqIdName) > 0 {
+			return false
+		}
+		if c.MySingleFlightByPath != nil && *c.MySingleFlightByPath {
+			return true
+		}
+		if c.MySingleFlightByUserIP != nil && *c.MySingleFlightByUserIP {
+			return true
+		}
+		return false
 	}
 	return *c.MySingleFlightByMethod
 }
 
 func (c *ConfigHttpServer) SingleFlightByPath() bool {
 	if c.MySingleFlightByPath == nil {
-		return true
+		if c.MySingleFlightReqIdName != nil && len(*c.MySingleFlightReqIdName) > 0 {
+			return false
+		}
+		if c.MySingleFlightByMethod != nil && *c.MySingleFlightByMethod {
+			return true
+		}
+		if c.MySingleFlightByUserIP != nil && *c.MySingleFlightByUserIP {
+			return true
+		}
+		return false
 	}
 	return *c.MySingleFlightByPath
 }
@@ -174,6 +192,15 @@ func (c *ConfigHttpServer) SingleFlightByBody() bool {
 
 func (c *ConfigHttpServer) SingleFlightByUserIP() bool {
 	if c.MySingleFlightByUserIP == nil {
+		if c.MySingleFlightReqIdName != nil && len(*c.MySingleFlightReqIdName) > 0 {
+			return false
+		}
+		if c.MySingleFlightByMethod != nil && *c.MySingleFlightByMethod {
+			return true
+		}
+		if c.MySingleFlightByPath != nil && *c.MySingleFlightByPath {
+			return true
+		}
 		return false
 	}
 	return *c.MySingleFlightByUserIP
