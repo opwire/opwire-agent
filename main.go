@@ -6,18 +6,15 @@ import (
 )
 
 func main() {
-	if info, ok := getInfoString(); ok {
+	manifest := &Manifest{}
+
+	if info, ok := manifest.String(); ok {
 		shellio.Println(info)
 	}
 
 	args, _ := shellio.ParseArgs()
-	opts := args.AgentServerOptions()
-	opts.Edition = services.ServerEdition {
-		Revision: gitCommit,
-		Version: gitTag,
-	}
 
-	_, err := services.NewAgentServer(opts)
+	_, err := services.NewAgentServer(args, manifest)
 	if err != nil {
 		shellio.Println("Fatal: %s", err.Error())
 	}

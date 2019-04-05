@@ -28,19 +28,18 @@ type CommandExecutor interface {
 	Run(io.Reader, *invokers.CommandInvocation, io.Writer, io.Writer) (*invokers.ExecutionState, error)
 }
 
-type ServerEdition struct {
-	Revision string   `json:"revision"`
-	Version string    `json:"version"`
+type AgentServerOptions interface {
+	GetConfigPath() string
+	GetDirectCommand() string
+	GetHost() string
+	GetPort() uint
+	GetStaticPath() map[string]string
+	SuppressAutoStart() bool
 }
 
-type ServerOptions struct {
-	ConfigPath string
-	Host *string
-	Port *uint
-	DirectCommand string
-	StaticPath map[string]string
-	SuppressAutoStart bool
-	Edition ServerEdition
+type AgentServerEdition interface {
+	GetRevision() string
+	GetVersion() string
 }
 
 type AgentServer struct {
@@ -52,7 +51,8 @@ type AgentServer struct {
 	reqSerializer *ReqSerializer
 	stateStore *StateStore
 	executor CommandExecutor
-	options *ServerOptions
+	edition AgentServerEdition
+	options AgentServerOptions
 	listeningLock int32
 	explanationEnabled bool
 }
@@ -62,15 +62,20 @@ type httpServerOptions struct {
 	MaxHeaderBytes int
 }
 
-func NewAgentServer(opts *ServerOptions) (s *AgentServer, err error) {
+func NewAgentServer(opts AgentServerOptions, e AgentServerEdition) (s *AgentServer, err error) {
 	if opts == nil {
-		opts = &ServerOptions{}
+		return nil, fmt.Errorf("AgentServerOptions must not be nil")
+	}
+
+	if e == nil {
+		return nil, fmt.Errorf("AgentServerEdition must not be nil")
 	}
 
 	// creates a new server instance
 	s = &AgentServer{}
 
-	// remember server options
+	// remember server edition & options
+	s.edition = e
 	s.options = opts
 
 	// creates a new command executor
@@ -91,7 +96,7 @@ func NewAgentServer(opts *ServerOptions) (s *AgentServer, err error) {
 	var conf *config.Configuration
 
 	// determine configuration path
-	s.configManager = config.NewManager(opts.Edition.Version, opts.ConfigPath)
+	s.configManager = config.NewManager(s.edition.GetVersion(), opts.GetConfigPath())
 	conf, result, err := s.configManager.Load()
 	if err != nil {
 		return nil, err
@@ -151,9 +156,10 @@ func NewAgentServer(opts *ServerOptions) (s *AgentServer, err error) {
 		s.httpRouter.HandleFunc(baseUrl, s.makeInvocationHandler())
 	}
 
-	urlPaths := utils.SortDesc(utils.Keys(opts.StaticPath))
+	webStaticPath := opts.GetStaticPath()
+	urlPaths := utils.SortDesc(utils.Keys(webStaticPath))
 	for _, urlPath := range urlPaths {
-		filePath := opts.StaticPath[urlPath]
+		filePath := webStaticPath[urlPath]
 		if utils.IsExists(filePath) {
 			log.Printf("Map [%s] -> [%s]", urlPath, filePath)
 			s.httpRouter.PathPrefix(urlPath).Handler(http.StripPrefix(urlPath, http.FileServer(http.Dir(filePath))))
@@ -171,7 +177,7 @@ func NewAgentServer(opts *ServerOptions) (s *AgentServer, err error) {
 	}
 
 	// starts the server by default
-	if !opts.SuppressAutoStart {
+	if !opts.SuppressAutoStart() {
 		if err = s.Start(); err != nil {
 			return nil, err
 		}
@@ -438,8 +444,12 @@ func (s *AgentServer) buildCommandInvocation(r *http.Request) (*invokers.Command
 	// prepare environment variables
 	envs := os.Environ()
 	// import the release information
-	if s.options != nil {
-		if str, err := json.Marshal(s.options.Edition); err == nil {
+	if s.edition != nil {
+		edition := map[string]string {
+			"revision": s.edition.GetRevision(),
+			"version": s.edition.GetVersion(),
+		}
+		if str, err := json.Marshal(edition); err == nil {
 			envs = append(envs, fmt.Sprintf("%s=%s", OPWIRE_EDITION_PREFIX, str))
 		}
 	}
@@ -456,8 +466,8 @@ func (s *AgentServer) buildCommandInvocation(r *http.Request) (*invokers.Command
 		MethodName: methodName,
 	}
 	// determine the direct-command
-	if s.options != nil && len(s.options.DirectCommand) > 0 {
-		ci.DirectCommand = s.options.DirectCommand
+	if s.options != nil && len(s.options.GetDirectCommand()) > 0 {
+		ci.DirectCommand = s.options.GetDirectCommand()
 	}
 	// determine customized execution timeout
 	timeout, err := time.ParseDuration(r.Header.Get(REQ_HEADER_EXECUTION_TIMEOUT))
@@ -646,7 +656,7 @@ func (s *AgentServer) unlockService() (error) {
 	return nil
 }
 
-func buildHttpAddr(opts *ServerOptions, c *config.Configuration) string {
+func buildHttpAddr(opts AgentServerOptions, c *config.Configuration) string {
 	var conf *config.ConfigHttpServer
 	if c != nil {
 		conf = c.HttpServer
@@ -655,16 +665,16 @@ func buildHttpAddr(opts *ServerOptions, c *config.Configuration) string {
 	if conf != nil && conf.Host != nil {
 		host = *conf.Host
 	}
-	if opts != nil && opts.Host != nil {
-		host = *opts.Host
+	if opts != nil && opts.GetHost() != "" {
+		host = opts.GetHost()
 	}
 
 	port := DEFAULT_PORT
 	if conf != nil && conf.Port != nil {
 		port = *conf.Port
 	}
-	if opts != nil && opts.Port != nil {
-		port = *opts.Port
+	if opts != nil && opts.GetPort() != 0 {
+		port = opts.GetPort()
 	}
 
 	return fmt.Sprintf("%s:%d", host, port)

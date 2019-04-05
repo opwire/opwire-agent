@@ -18,7 +18,6 @@ type ReqRestrictor struct {
 	semaphore *semaphore.Weighted
 	flightGroup *singleflight.Group
 	flightPattern *SingleFlightPattern
-	options *ReqRestrictorOptions
 }
 
 type ReqRestrictorOptions interface {
@@ -151,6 +150,9 @@ func (rr *ReqRestrictor) LogResult(groupKey string, state interface{}, err error
 func (rr *ReqRestrictor) Digest(r *http.Request) string {
 	o := []string{}
 	p := rr.flightPattern
+	if p == nil {
+		p = &SingleFlightPattern{}
+	}
 	if p.HasMethod {
 		o = append(o, r.Method)
 	}

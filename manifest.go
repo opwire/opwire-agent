@@ -13,7 +13,17 @@ var (
 	builtBy string
 )
 
-func getInfoString() (string, bool) {
+type Manifest struct {}
+
+func (m *Manifest) GetRevision() string {
+	return gitCommit
+}
+
+func (m *Manifest) GetVersion() string {
+	return gitTag
+}
+
+func (m *Manifest) String() (string, bool) {
 	ok := false
 	s := artifactId + " |"
 
