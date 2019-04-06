@@ -12,7 +12,7 @@ func main() {
 		shellio.Println(info)
 	}
 
-	args, _ := shellio.ParseArgs()
+	args, _ := shellio.ParseArgs(manifest)
 
 	_, err := services.NewAgentServer(args, manifest)
 	if err != nil {

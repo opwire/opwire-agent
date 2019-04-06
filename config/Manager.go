@@ -43,14 +43,21 @@ type ConfigHttpServer struct {
 type Manager struct {
 	currentVersion string
 	defaultCfgFile string
+	options ManagerOptions
 	locator *Locator
 	validator *Validator
 }
 
-func NewManager(currentVersion string, defaultCfgFile string) (*Manager) {
+type ManagerOptions interface {
+	GetConfigPath() string
+	GetHost() string
+	GetPort() uint
+	GetVersion() string
+}
+
+func NewManager(options ManagerOptions) (*Manager) {
 	m := &Manager{}
-	m.currentVersion = currentVersion
-	m.defaultCfgFile = defaultCfgFile
+	m.options = options
 	m.locator = NewLocator()
 	m.validator = NewValidator()
 	return m
@@ -67,7 +74,7 @@ func (m *Manager) Load() (cfg *Configuration, result ValidationResult, err error
 
 func (m *Manager) loadJson() (*Configuration, error) {
 	fs := storages.GetFs()
-	cfgpath, from := m.locator.GetConfigPath(m.defaultCfgFile)
+	cfgpath, from := m.locator.GetConfigPath(m.options.GetConfigPath())
 	if len(from) == 0 {
 		log.Printf("Configuration file not found")
 		return nil, nil

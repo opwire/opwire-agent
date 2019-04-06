@@ -35,6 +35,8 @@ type AgentServerOptions interface {
 	GetPort() uint
 	GetStaticPath() map[string]string
 	SuppressAutoStart() bool
+	GetRevision() string
+	GetVersion() string
 }
 
 type AgentServerEdition interface {
@@ -62,8 +64,8 @@ type httpServerOptions struct {
 	MaxHeaderBytes int
 }
 
-func NewAgentServer(opts AgentServerOptions, e AgentServerEdition) (s *AgentServer, err error) {
-	if opts == nil {
+func NewAgentServer(o AgentServerOptions, e AgentServerEdition) (s *AgentServer, err error) {
+	if o == nil {
 		return nil, fmt.Errorf("AgentServerOptions must not be nil")
 	}
 
@@ -76,7 +78,7 @@ func NewAgentServer(opts AgentServerOptions, e AgentServerEdition) (s *AgentServ
 
 	// remember server edition & options
 	s.edition = e
-	s.options = opts
+	s.options = o
 
 	// creates a new command executor
 	s.executor, err = invokers.NewExecutor(&invokers.ExecutorOptions{})
@@ -96,7 +98,7 @@ func NewAgentServer(opts AgentServerOptions, e AgentServerEdition) (s *AgentServ
 	var conf *config.Configuration
 
 	// determine configuration path
-	s.configManager = config.NewManager(s.edition.GetVersion(), opts.GetConfigPath())
+	s.configManager = config.NewManager(s.options)
 	conf, result, err := s.configManager.Load()
 	if err != nil {
 		return nil, err
@@ -156,7 +158,7 @@ func NewAgentServer(opts AgentServerOptions, e AgentServerEdition) (s *AgentServ
 		s.httpRouter.HandleFunc(baseUrl, s.makeInvocationHandler())
 	}
 
-	webStaticPath := opts.GetStaticPath()
+	webStaticPath := s.options.GetStaticPath()
 	urlPaths := utils.SortDesc(utils.Keys(webStaticPath))
 	for _, urlPath := range urlPaths {
 		filePath := webStaticPath[urlPath]
@@ -168,7 +170,7 @@ func NewAgentServer(opts AgentServerOptions, e AgentServerEdition) (s *AgentServ
 
 	// creates a new HTTP server
 	s.httpOptions = new(httpServerOptions)
-	s.httpOptions.Addr = buildHttpAddr(opts, conf)
+	s.httpOptions.Addr = buildHttpAddr(s.options, conf)
 	s.httpOptions.MaxHeaderBytes = 1 << 22 // new default: 4MB
 
 	// other configurations
@@ -177,7 +179,7 @@ func NewAgentServer(opts AgentServerOptions, e AgentServerEdition) (s *AgentServ
 	}
 
 	// starts the server by default
-	if !opts.SuppressAutoStart() {
+	if !s.options.SuppressAutoStart() {
 		if err = s.Start(); err != nil {
 			return nil, err
 		}

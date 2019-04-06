@@ -13,31 +13,38 @@ type AgentCmdArgs struct {
 	DirectCommand *string `short:"d" long:"default-command" description:"The command string that will be executed directly"`
 	StaticPath []string `short:"s" long:"static-path" description:"Path of static web resources"`
 	Verbose []bool `short:"v" long:"verbose" description:"Show verbose debug information"`
+	manifest AgentManifest
 }
 
-func ParseArgs() (*AgentCmdArgs, error) {
+type AgentManifest interface {
+	GetRevision() string
+	GetVersion() string
+}
+
+func ParseArgs(manifest AgentManifest) (*AgentCmdArgs, error) {
 	args := &AgentCmdArgs{}
 	_, err := flags.ParseArgs(args, os.Args[1:])
+	args.manifest = manifest
 	return args, err
 }
 
 func (a *AgentCmdArgs) GetConfigPath() string {
 	if a.ConfigPath == nil {
-		return BLANK
+		return ""
 	}
 	return *a.ConfigPath
 }
 
 func (a *AgentCmdArgs) GetDirectCommand() string {
 	if a.DirectCommand == nil {
-		return BLANK
+		return ""
 	}
 	return *a.DirectCommand
 }
 
 func (a *AgentCmdArgs) GetHost() string {
 	if a.Host == nil {
-		return BLANK
+		return ""
 	}
 	return *a.Host
 }
@@ -57,4 +64,16 @@ func (a *AgentCmdArgs) SuppressAutoStart() bool {
 	return false
 }
 
-const BLANK string = ""
+func (a *AgentCmdArgs) GetRevision() string {
+	if a.manifest == nil {
+		return ""
+	}
+	return a.manifest.GetRevision()
+}
+
+func (a *AgentCmdArgs) GetVersion() string {
+	if a.manifest == nil {
+		return ""
+	}
+	return a.manifest.GetVersion()
+}

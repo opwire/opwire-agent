@@ -2,27 +2,15 @@ package services
 
 import (
 	"testing"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"github.com/opwire/opwire-agent/utils"
 )
 
 func TestNewAgentServer(t *testing.T) {
 	t.Run("all of components should not be nil", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
+		options := &AgentServerOptionsTest{}
 
-		options := NewMockAgentServerOptions(ctrl)
-		options.EXPECT().GetConfigPath().Return("").AnyTimes()
-		options.EXPECT().GetStaticPath().Return(map[string]string{}).AnyTimes()
-		options.EXPECT().GetHost().Return("").AnyTimes()
-		options.EXPECT().GetPort().Return(uint(0)).AnyTimes()
-		options.EXPECT().SuppressAutoStart().Return(true).AnyTimes()
-
-		edition := NewMockAgentServerEdition(ctrl)
-		edition.EXPECT().GetRevision().Return("g586f436").AnyTimes()
-		edition.EXPECT().GetVersion().Return("v1.0.6-9-g586f436").AnyTimes()
-
-		s, err := NewAgentServer(options, edition)
+		s, err := NewAgentServer(options, options)
 
 		assert.NotNil(t, s)
 		assert.Nil(t, err)
@@ -33,4 +21,46 @@ func TestNewAgentServer(t *testing.T) {
 		assert.NotNil(t, s.stateStore)
 		assert.NotNil(t, s.executor)
 	})
+}
+
+type AgentServerOptionsTest struct {
+	ConfigPath string
+	DirectCommand string
+	Host string
+	Port uint
+	StaticPath []string
+	Revision string
+	Version string
+}
+
+func (o *AgentServerOptionsTest) GetConfigPath() string {
+	return o.ConfigPath
+}
+
+func (o *AgentServerOptionsTest) GetDirectCommand() string {
+	return o.DirectCommand
+}
+
+func (o *AgentServerOptionsTest) GetHost() string {
+	return o.Host
+}
+
+func (o *AgentServerOptionsTest) GetPort() uint {
+	return o.Port
+}
+
+func (o *AgentServerOptionsTest) GetStaticPath() map[string]string {
+	return utils.ParseDirMappings(o.StaticPath)
+}
+
+func (o *AgentServerOptionsTest) SuppressAutoStart() bool {
+	return true
+}
+
+func (o *AgentServerOptionsTest) GetRevision() string {
+	return o.Revision
+}
+
+func (o *AgentServerOptionsTest) GetVersion() string {
+	return o.Version
 }

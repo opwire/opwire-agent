@@ -7,12 +7,35 @@ import (
 
 func TestNewManager(t *testing.T) {
 	t.Run("all of components should not be nil", func(t *testing.T) {
-		s := NewManager("v0.1.2", "/home/opwire/demo.cfg")
+		options := &ManagerOptionsTest{}
+		s := NewManager(options)
 
 		assert.NotNil(t, s)
-		assert.Equal(t, s.currentVersion, "v0.1.2")
-		assert.Equal(t, s.defaultCfgFile, "/home/opwire/demo.cfg")
+		assert.Equal(t, options, s.options)
 		assert.NotNil(t, s.locator)
 		assert.NotNil(t, s.validator)
 	})
+}
+
+type ManagerOptionsTest struct {
+	ConfigPath string
+	Host string
+	Port uint
+	Version string
+}
+
+func (o *ManagerOptionsTest) GetConfigPath() string {
+	return o.ConfigPath
+}
+
+func (o *ManagerOptionsTest) GetHost() string {
+	return o.Host
+}
+
+func (o *ManagerOptionsTest) GetPort() uint {
+	return o.Port
+}
+
+func (o *ManagerOptionsTest) GetVersion() string {
+	return o.Version
 }
