@@ -25,6 +25,7 @@ type ConfigAgent struct {
 }
 
 type ConfigHttpServer struct {
+	constructorOptions ManagerOptions
 	Host *string `json:"host"`
 	Port *uint `json:"port"`
 	BaseUrl *string `json:"baseurl"`
@@ -41,11 +42,9 @@ type ConfigHttpServer struct {
 }
 
 type Manager struct {
-	currentVersion string
-	defaultCfgFile string
-	options ManagerOptions
 	locator *Locator
 	validator *Validator
+	options ManagerOptions
 }
 
 type ManagerOptions interface {
@@ -57,9 +56,9 @@ type ManagerOptions interface {
 
 func NewManager(options ManagerOptions) (*Manager) {
 	m := &Manager{}
-	m.options = options
 	m.locator = NewLocator()
 	m.validator = NewValidator()
+	m.options = options
 	return m
 }
 
@@ -96,6 +95,10 @@ func (m *Manager) loadJson() (*Configuration, error) {
 		return nil, err
 	}
 
+	if config.HttpServer != nil {
+		config.HttpServer.constructorOptions = m.options
+	}
+
 	return config, nil
 }
 
@@ -114,6 +117,35 @@ func (m *Manager) Init(cfg *Configuration, result ValidationResult, err error) (
 		
 	}
 	return cfg, nil
+}
+
+func (c *ConfigHttpServer) GetHost() string {
+	o := c.constructorOptions
+	if o != nil && o.GetHost() != "" {
+		return o.GetHost()
+	}
+	if c.Host != nil {
+		return *c.Host
+	}
+	return ""
+}
+
+func (c *ConfigHttpServer) GetPort() uint {
+	o := c.constructorOptions
+	if o != nil && o.GetPort() != 0 {
+		return o.GetPort()
+	}
+	if c.Port != nil {
+		return *c.Port
+	}
+	return 0
+}
+
+func (c *ConfigHttpServer) GetBaseUrl() string {
+	if c.BaseUrl != nil {
+		return *c.BaseUrl
+	}
+	return ""
 }
 
 func (c *ConfigHttpServer) ConcurrentLimitEnabled() bool {
