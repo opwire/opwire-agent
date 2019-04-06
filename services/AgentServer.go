@@ -138,9 +138,9 @@ func NewAgentServer(o AgentServerOptions) (s *AgentServer, err error) {
 	// defines HTTP request invokers
 	baseUrl := buildBaseUrl(conf)
 	s.httpRouter = mux.NewRouter()
-	s.httpRouter.HandleFunc(CTRL_BASEURL + `health`, s.makeHealthCheckHandler())
-	s.httpRouter.HandleFunc(CTRL_BASEURL + `lock`, s.makeLockServiceHandler(true))
-	s.httpRouter.HandleFunc(CTRL_BASEURL + `unlock`, s.makeLockServiceHandler(false))
+	s.httpRouter.HandleFunc(CTRL_BASEURL + `/health`, s.makeHealthCheckHandler())
+	s.httpRouter.HandleFunc(CTRL_BASEURL + `/lock`, s.makeLockServiceHandler(true))
+	s.httpRouter.HandleFunc(CTRL_BASEURL + `/unlock`, s.makeLockServiceHandler(false))
 	s.httpRouter.HandleFunc(baseUrl + `/{resourceName:` + config.RESOURCE_NAME_PATTERN + `}`, s.makeInvocationHandler())
 	s.httpRouter.HandleFunc(baseUrl + `/`, s.makeInvocationHandler())
 	if len(baseUrl) > 0 {
@@ -682,8 +682,8 @@ func buildBaseUrl(conf *config.Configuration) string {
 	return baseUrl
 }
 
-const CTRL_BASEURL string = `/_/`
-const EXEC_BASEURL string = `/run`
+const CTRL_BASEURL string = `/_`
+const EXEC_BASEURL string = `/$`
 const DEFAULT_PORT uint = 17779
 const OPWIRE_EDITION_PREFIX string = "OPWIRE_EDITION"
 const OPWIRE_EDITION_PREFIX_PLUS string = OPWIRE_EDITION_PREFIX + "="
