@@ -104,19 +104,8 @@ func NewAgentServer(o AgentServerOptions) (s *AgentServer, err error) {
 		conf = &config.Configuration{}
 	}
 
-	// register the main resource
-	if conf.Main != nil {
-		resourceName := invokers.MAIN_RESOURCE
-		resource := conf.Main
-		s.importResource(resourceName, resource, conf.Settings, conf.SettingsFormat)
-	}
-
-	// register the sub-resources
-	if conf.Resources != nil {
-		for resourceName, resource := range conf.Resources {
-			s.importResource(resourceName, &resource, conf.Settings, conf.SettingsFormat)
-		}
-	}
+	// register main & sub-resources
+	s.registerResources(conf)
 
 	// creates a ReqSerializer instance
 	s.reqSerializer, err = NewReqSerializer()
@@ -142,27 +131,16 @@ func NewAgentServer(o AgentServerOptions) (s *AgentServer, err error) {
 	s.httpRouter.HandleFunc(CTRL_BASEURL + `/lock`, s.makeLockServiceHandler(true))
 	s.httpRouter.HandleFunc(CTRL_BASEURL + `/unlock`, s.makeLockServiceHandler(false))
 
-	s.mapResourceToExecUrl(EXEC_BASEURL, conf)
-	s.mapResourceToExecUrl(EXEC_BASEURL_DEPRECATED, conf)
+	s.mappingResourceToExecUrl(EXEC_BASEURL, conf)
+	s.mappingResourceToExecUrl(EXEC_BASEURL_DEPRECATED, conf)
 
-
+	// validate duplicated resource patterns
 	if err := validateResourcePatterns(conf); err != nil {
 		return nil, err
 	}
 
-	// register the main resource
-	if conf.Main != nil {
-		resourceName := invokers.MAIN_RESOURCE
-		resourceConf := conf.Main
-		s.mapResourcePattern(resourceName, resourceConf)
-	}
-
-	// register the sub-resources
-	if conf.Resources != nil {
-		for resourceName, resourceConf := range conf.Resources {
-			s.mapResourcePattern(resourceName, &resourceConf)
-		}
-	}
+	// declare resource patterns
+	s.mappingResourcePatterns(conf)
 
 	webStaticPath := s.options.GetStaticPath()
 	urlPaths := utils.SortDesc(utils.Keys(webStaticPath))
@@ -234,7 +212,23 @@ func (s *AgentServer) Shutdown() (error) {
 	return nil
 }
 
-func (s *AgentServer) importResource(resourceName string, resource *invokers.CommandEntrypoint,
+func (s *AgentServer) registerResources(conf *config.Configuration) {
+	// register the main resource
+	if conf.Main != nil {
+		resourceName := invokers.MAIN_RESOURCE
+		resource := conf.Main
+		s.registerResource(resourceName, resource, conf.Settings, conf.SettingsFormat)
+	}
+
+	// register the sub-resources
+	if conf.Resources != nil {
+		for resourceName, resource := range conf.Resources {
+			s.registerResource(resourceName, &resource, conf.Settings, conf.SettingsFormat)
+		}
+	}
+}
+
+func (s *AgentServer) registerResource(resourceName string, resource *invokers.CommandEntrypoint,
 		settings map[string]interface{}, format *string) {
 	if resource != nil {
 		s.executor.Register(resource.Default, resourceName)
@@ -258,13 +252,29 @@ func (s *AgentServer) importResource(resourceName string, resource *invokers.Com
 	}
 }
 
-func (s *AgentServer) mapResourcePattern(resourceName string, resourceConf *invokers.CommandEntrypoint) {
+func (s *AgentServer) mappingResourcePatterns(conf *config.Configuration) {
+	// register the main resource
+	if conf.Main != nil {
+		resourceName := invokers.MAIN_RESOURCE
+		resourceConf := conf.Main
+		s.mappingResourcePattern(resourceName, resourceConf)
+	}
+
+	// register the sub-resources
+	if conf.Resources != nil {
+		for resourceName, resourceConf := range conf.Resources {
+			s.mappingResourcePattern(resourceName, &resourceConf)
+		}
+	}
+}
+
+func (s *AgentServer) mappingResourcePattern(resourceName string, resourceConf *invokers.CommandEntrypoint) {
 	if len(resourceName) > 0 && resourceConf.Pattern != nil {
 		s.httpRouter.HandleFunc(*resourceConf.Pattern, s.makeInvocationHandler())
 	}
 }
 
-func (s *AgentServer) mapResourceToExecUrl(defaultBaseUrl string, conf *config.Configuration) {
+func (s *AgentServer) mappingResourceToExecUrl(defaultBaseUrl string, conf *config.Configuration) {
 	baseUrl := buildExecUrl(defaultBaseUrl, conf)
 	s.httpRouter.HandleFunc(baseUrl + `/{resourceName:` + config.RESOURCE_NAME_PATTERN + `}`, s.makeInvocationHandler())
 	s.httpRouter.HandleFunc(baseUrl + `/`, s.makeInvocationHandler())
