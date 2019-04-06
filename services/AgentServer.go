@@ -39,11 +39,6 @@ type AgentServerOptions interface {
 	GetVersion() string
 }
 
-type AgentServerEdition interface {
-	GetRevision() string
-	GetVersion() string
-}
-
 type AgentServer struct {
 	configManager *config.Manager
 	httpServer *http.Server
