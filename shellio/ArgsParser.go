@@ -1,6 +1,7 @@
 package shellio
 
 import (
+	"fmt"
 	"os"
 	"github.com/acegik/cmdflags"
 	"github.com/opwire/opwire-agent/utils"
@@ -22,6 +23,9 @@ type AgentManifest interface {
 }
 
 func ParseArgs(manifest AgentManifest) (*AgentCmdArgs, error) {
+	if manifest == nil {
+		return nil, fmt.Errorf("Manifest must not be nil")
+	}
 	args := &AgentCmdArgs{}
 	_, err := flags.ParseArgs(args, os.Args[1:])
 	args.manifest = manifest

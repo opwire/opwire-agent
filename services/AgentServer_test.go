@@ -10,7 +10,7 @@ func TestNewAgentServer(t *testing.T) {
 	t.Run("all of components should not be nil", func(t *testing.T) {
 		options := &AgentServerOptionsTest{}
 
-		s, err := NewAgentServer(options, options)
+		s, err := NewAgentServer(options)
 
 		assert.NotNil(t, s)
 		assert.Nil(t, err)

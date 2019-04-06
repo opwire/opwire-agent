@@ -53,7 +53,6 @@ type AgentServer struct {
 	reqSerializer *ReqSerializer
 	stateStore *StateStore
 	executor CommandExecutor
-	edition AgentServerEdition
 	options AgentServerOptions
 	listeningLock int32
 	explanationEnabled bool
@@ -64,20 +63,15 @@ type httpServerOptions struct {
 	MaxHeaderBytes int
 }
 
-func NewAgentServer(o AgentServerOptions, e AgentServerEdition) (s *AgentServer, err error) {
+func NewAgentServer(o AgentServerOptions) (s *AgentServer, err error) {
 	if o == nil {
 		return nil, fmt.Errorf("AgentServerOptions must not be nil")
-	}
-
-	if e == nil {
-		return nil, fmt.Errorf("AgentServerEdition must not be nil")
 	}
 
 	// creates a new server instance
 	s = &AgentServer{}
 
 	// remember server edition & options
-	s.edition = e
 	s.options = o
 
 	// creates a new command executor
@@ -446,10 +440,10 @@ func (s *AgentServer) buildCommandInvocation(r *http.Request) (*invokers.Command
 	// prepare environment variables
 	envs := os.Environ()
 	// import the release information
-	if s.edition != nil {
+	if s.options != nil {
 		edition := map[string]string {
-			"revision": s.edition.GetRevision(),
-			"version": s.edition.GetVersion(),
+			"revision": s.options.GetRevision(),
+			"version": s.options.GetVersion(),
 		}
 		if str, err := json.Marshal(edition); err == nil {
 			envs = append(envs, fmt.Sprintf("%s=%s", OPWIRE_EDITION_PREFIX, str))

@@ -14,7 +14,7 @@ func main() {
 
 	args, _ := shellio.ParseArgs(manifest)
 
-	_, err := services.NewAgentServer(args, manifest)
+	_, err := services.NewAgentServer(args)
 	if err != nil {
 		shellio.Println("Fatal: %s", err.Error())
 	}
