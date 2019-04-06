@@ -136,16 +136,13 @@ func NewAgentServer(o AgentServerOptions) (s *AgentServer, err error) {
 	}
 
 	// defines HTTP request invokers
-	baseUrl := buildBaseUrl(conf)
 	s.httpRouter = mux.NewRouter()
 	s.httpRouter.HandleFunc(CTRL_BASEURL + `/health`, s.makeHealthCheckHandler())
 	s.httpRouter.HandleFunc(CTRL_BASEURL + `/lock`, s.makeLockServiceHandler(true))
 	s.httpRouter.HandleFunc(CTRL_BASEURL + `/unlock`, s.makeLockServiceHandler(false))
-	s.httpRouter.HandleFunc(baseUrl + `/{resourceName:` + config.RESOURCE_NAME_PATTERN + `}`, s.makeInvocationHandler())
-	s.httpRouter.HandleFunc(baseUrl + `/`, s.makeInvocationHandler())
-	if len(baseUrl) > 0 {
-		s.httpRouter.HandleFunc(baseUrl, s.makeInvocationHandler())
-	}
+
+	s.mapResourceToExecUrl(EXEC_BASEURL, conf)
+	s.mapResourceToExecUrl(EXEC_BASEURL_DEPRECATED, conf)
 
 	webStaticPath := s.options.GetStaticPath()
 	urlPaths := utils.SortDesc(utils.Keys(webStaticPath))
@@ -238,6 +235,15 @@ func (s *AgentServer) importResource(resourceName string, resource *invokers.Com
 			}
 			s.executor.StoreSettings(OPWIRE_SETTINGS_PREFIX, privSettings, privFormat, resourceName)
 		}
+	}
+}
+
+func (s *AgentServer) mapResourceToExecUrl(defaultBaseUrl string, conf *config.Configuration) {
+	baseUrl := buildExecUrl(defaultBaseUrl, conf)
+	s.httpRouter.HandleFunc(baseUrl + `/{resourceName:` + config.RESOURCE_NAME_PATTERN + `}`, s.makeInvocationHandler())
+	s.httpRouter.HandleFunc(baseUrl + `/`, s.makeInvocationHandler())
+	if len(baseUrl) > 0 {
+		s.httpRouter.HandleFunc(baseUrl, s.makeInvocationHandler())
 	}
 }
 
@@ -419,11 +425,6 @@ func normalizeMethod(method string) (string, bool) {
 		return name, true
 	}
 	return name, false
-}
-
-func (s *AgentServer) extractRequestFlightId(r *http.Request) (string, string) {
-	reqId := r.Header.Get(REQ_HEADER_REQUEST_ID_NAME)
-	return reqId, reqId
 }
 
 func (s *AgentServer) buildCommandInvocation(r *http.Request) (*invokers.CommandInvocation, error) {
@@ -671,8 +672,8 @@ func buildHttpAddr(opts AgentServerOptions, c *config.Configuration) string {
 	return fmt.Sprintf("%s:%d", host, port)
 }
 
-func buildBaseUrl(conf *config.Configuration) string {
-	baseUrl := EXEC_BASEURL
+func buildExecUrl(defaultBaseUrl string, conf *config.Configuration) string {
+	baseUrl := defaultBaseUrl
 	if conf != nil && conf.HttpServer != nil && conf.HttpServer.BaseUrl != nil {
 		baseUrl = *conf.HttpServer.BaseUrl
 	}
@@ -684,6 +685,7 @@ func buildBaseUrl(conf *config.Configuration) string {
 
 const CTRL_BASEURL string = `/_`
 const EXEC_BASEURL string = `/$`
+const EXEC_BASEURL_DEPRECATED string = `/run`
 const DEFAULT_PORT uint = 17779
 const OPWIRE_EDITION_PREFIX string = "OPWIRE_EDITION"
 const OPWIRE_EDITION_PREFIX_PLUS string = OPWIRE_EDITION_PREFIX + "="
