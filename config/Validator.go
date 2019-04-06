@@ -129,6 +129,17 @@ var configurationSchema string = `{
 						}
 					]
 				},
+				"pattern": {
+					"oneOf": [
+						{
+							"type": "null"
+						},
+						{
+							"type": "string",
+							"minLength": 1
+						}
+					]
+				},
 				"settings": {
 					"$ref": "#/definitions/Settings"
 				},

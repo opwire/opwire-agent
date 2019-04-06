@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"regexp"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -144,6 +145,25 @@ func NewAgentServer(o AgentServerOptions) (s *AgentServer, err error) {
 	s.mapResourceToExecUrl(EXEC_BASEURL, conf)
 	s.mapResourceToExecUrl(EXEC_BASEURL_DEPRECATED, conf)
 
+
+	if err := validateResourcePatterns(conf); err != nil {
+		return nil, err
+	}
+
+	// register the main resource
+	if conf.Main != nil {
+		resourceName := invokers.MAIN_RESOURCE
+		resourceConf := conf.Main
+		s.mapResourcePattern(resourceName, resourceConf)
+	}
+
+	// register the sub-resources
+	if conf.Resources != nil {
+		for resourceName, resourceConf := range conf.Resources {
+			s.mapResourcePattern(resourceName, &resourceConf)
+		}
+	}
+
 	webStaticPath := s.options.GetStaticPath()
 	urlPaths := utils.SortDesc(utils.Keys(webStaticPath))
 	for _, urlPath := range urlPaths {
@@ -235,6 +255,12 @@ func (s *AgentServer) importResource(resourceName string, resource *invokers.Com
 			}
 			s.executor.StoreSettings(OPWIRE_SETTINGS_PREFIX, privSettings, privFormat, resourceName)
 		}
+	}
+}
+
+func (s *AgentServer) mapResourcePattern(resourceName string, resourceConf *invokers.CommandEntrypoint) {
+	if len(resourceName) > 0 && resourceConf.Pattern != nil {
+		s.httpRouter.HandleFunc(*resourceConf.Pattern, s.makeInvocationHandler())
 	}
 }
 
@@ -681,6 +707,46 @@ func buildExecUrl(defaultBaseUrl string, conf *config.Configuration) string {
 		baseUrl = ""
 	}
 	return baseUrl
+}
+
+func validateResourcePatterns(conf *config.Configuration) error {
+	patterns := make(map[string][]string, 0)
+
+	if conf.Main != nil {
+		resourceConf := conf.Main
+		countDuplicatedPatterns(patterns, resourceConf)
+	}
+
+	if conf.Resources != nil {
+		for _, resourceConf := range conf.Resources {
+			countDuplicatedPatterns(patterns, &resourceConf)
+		}
+	}
+
+	errstrs := []string {}
+	for _, dup := range patterns {
+		if len(dup) > 1 {
+			errstrs = append(errstrs, strings.Join(dup, ", "))
+		}
+	}
+	if len(errstrs) > 0 {
+		errstrs = append([]string {"Command url patterns are duplicated. Errors:"}, errstrs...)
+		return fmt.Errorf(strings.Join(errstrs, "\n - "))
+	}
+
+	return nil
+}
+
+var re *regexp.Regexp = regexp.MustCompile(`{([^{]*)}`)
+
+func countDuplicatedPatterns(patterns map[string][]string, resourceConf *invokers.CommandEntrypoint) {
+	if resourceConf.Pattern != nil {
+		s := re.ReplaceAllString(*resourceConf.Pattern, "*")
+		if _, ok := patterns[s]; !ok {
+			patterns[s] = make([]string, 0)
+		}
+		patterns[s] = append(patterns[s], *resourceConf.Pattern)
+	}
 }
 
 const CTRL_BASEURL string = `/_`

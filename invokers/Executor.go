@@ -28,6 +28,7 @@ type ExecutorOptions struct {
 type CommandEntrypoint struct {
 	Default *CommandDescriptor `json:"default"`
 	Methods map[string]*CommandDescriptor `json:"methods"`
+	Pattern *string `json:"pattern"`
 	Settings map[string]interface{} `json:"settings"`
 	SettingsFormat *string `json:"settings-format"`
 	settingsEnvs []string
