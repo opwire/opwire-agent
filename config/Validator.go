@@ -7,6 +7,7 @@ import (
 
 const RESOURCE_NAME_PATTERN string = `[a-zA-Z][a-zA-Z0-9_-]*`
 const BASEURL_PATTERN string = `([\\/]|([\\/][a-zA-Z]|[\\/][a-zA-Z][a-zA-Z0-9_-]*[a-zA-Z0-9])+)?`
+const TIMEOUT_PATTERN string = `([0-9]+h)?([0-9]+m)?([0-9]+s)?([0-9]+ms)?([0-9]+[uµ]s)?([0-9]+ns)?`
 
 type Validator struct {
 	schemaLoader gojsonschema.JSONLoader
@@ -214,6 +215,39 @@ var configurationSchema string = `{
 						{
 							"type": "string",
 							"pattern": "^` + BASEURL_PATTERN + `$"
+						}
+					]
+				},
+				"max-header-bytes": {
+					"oneOf": [
+						{
+							"type": "null"
+						},
+						{
+							"type": "integer",
+							"minimum": 0
+						}
+					]
+				},
+				"read-timeout": {
+					"oneOf": [
+						{
+							"type": "null"
+						},
+						{
+							"type": "string",
+							"pattern": "^` + TIMEOUT_PATTERN + `$"
+						}
+					]
+				},
+				"write-timeout": {
+					"oneOf": [
+						{
+							"type": "null"
+						},
+						{
+							"type": "string",
+							"pattern": "^` + TIMEOUT_PATTERN + `$"
 						}
 					]
 				},

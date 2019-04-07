@@ -57,6 +57,8 @@ type AgentServer struct {
 type httpServerOptions struct {
 	Addr string
 	MaxHeaderBytes int
+	ReadTimeout time.Duration
+	WriteTimeout time.Duration
 }
 
 func NewAgentServer(o AgentServerOptions) (s *AgentServer, err error) {
@@ -156,6 +158,18 @@ func NewAgentServer(o AgentServerOptions) (s *AgentServer, err error) {
 	s.httpOptions = new(httpServerOptions)
 	s.httpOptions.Addr = buildHttpAddr(s.options, conf)
 	s.httpOptions.MaxHeaderBytes = 1 << 22 // new default: 4MB
+	httpConf := conf.HttpServer
+	if httpConf != nil {
+		if maxbytes := httpConf.GetMaxHeaderBytes(); maxbytes > 0 {
+			s.httpOptions.MaxHeaderBytes = maxbytes
+		}
+		if timeout, err := httpConf.GetReadTimeout(); timeout > 0 && err == nil {
+			s.httpOptions.ReadTimeout = timeout
+		}
+		if timeout, err := httpConf.GetWriteTimeout(); timeout > 0 && err == nil {
+			s.httpOptions.WriteTimeout = timeout
+		}
+	}
 
 	// other configurations
 	if conf.Agent != nil && conf.Agent.ExplanationEnabled != nil {
@@ -179,13 +193,22 @@ func (s *AgentServer) Start() (error) {
 			MaxHeaderBytes: s.httpOptions.MaxHeaderBytes,
 			Handler: s.httpRouter,
 		}
+		if s.httpOptions.ReadTimeout > 0 {
+			s.httpServer.ReadTimeout = s.httpOptions.ReadTimeout
+		}
+		if s.httpOptions.WriteTimeout > 0 {
+			s.httpServer.WriteTimeout = s.httpOptions.WriteTimeout
+		}
 	}
 	// listens and waiting for TERM signal for shutting down
 	return s.listenAndServe()
 }
 
 func (s *AgentServer) Shutdown() (error) {
-	closingTimeout := time.Second * 5
+	closingTimeout := 10 * time.Second // default WriteTimeout
+	if s.httpOptions.WriteTimeout > 0 {
+		closingTimeout = s.httpOptions.WriteTimeout
+	}
 
 	defer func() {
 		s.httpServer = nil

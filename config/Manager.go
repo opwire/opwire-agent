@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 	"github.com/opwire/opwire-agent/invokers"
 	"github.com/opwire/opwire-agent/storages"
 	"github.com/opwire/opwire-agent/utils"
@@ -25,10 +26,13 @@ type ConfigAgent struct {
 }
 
 type ConfigHttpServer struct {
-	constructorOptions ManagerOptions
+	managerOptions ManagerOptions
 	Host *string `json:"host"`
 	Port *uint `json:"port"`
 	BaseUrl *string `json:"baseurl"`
+	MaxHeaderBytes *int `json:"max-header-bytes"`
+	ReadTimeout *string `json:"read-timeout"`
+	WriteTimeout *string `json:"write-timeout"`
 	MyConcurrentLimitEnabled *bool `json:"concurrent-limit-enabled"`
 	MyConcurrentLimitTotal *int `json:"concurrent-limit-total"`
 	MySingleFlightEnabled *bool `json:"single-flight-enabled"`
@@ -96,7 +100,7 @@ func (m *Manager) loadJson() (*Configuration, error) {
 	}
 
 	if config.HttpServer != nil {
-		config.HttpServer.constructorOptions = m.options
+		config.HttpServer.managerOptions = m.options
 	}
 
 	return config, nil
@@ -120,7 +124,7 @@ func (m *Manager) Init(cfg *Configuration, result ValidationResult, err error) (
 }
 
 func (c *ConfigHttpServer) GetHost() string {
-	o := c.constructorOptions
+	o := c.managerOptions
 	if o != nil && o.GetHost() != "" {
 		return o.GetHost()
 	}
@@ -131,7 +135,7 @@ func (c *ConfigHttpServer) GetHost() string {
 }
 
 func (c *ConfigHttpServer) GetPort() uint {
-	o := c.constructorOptions
+	o := c.managerOptions
 	if o != nil && o.GetPort() != 0 {
 		return o.GetPort()
 	}
@@ -146,6 +150,27 @@ func (c *ConfigHttpServer) GetBaseUrl() string {
 		return *c.BaseUrl
 	}
 	return ""
+}
+
+func (c *ConfigHttpServer) GetMaxHeaderBytes() int {
+	if c.MaxHeaderBytes != nil {
+		return *c.MaxHeaderBytes
+	}
+	return 0
+}
+
+func (c *ConfigHttpServer) GetReadTimeout() (time.Duration, error) {
+	if c.ReadTimeout != nil {
+		return time.ParseDuration(*c.ReadTimeout)
+	}
+	return 0, nil
+}
+
+func (c *ConfigHttpServer) GetWriteTimeout() (time.Duration, error) {
+	if c.WriteTimeout != nil {
+		return time.ParseDuration(*c.WriteTimeout)
+	}
+	return 0, nil
 }
 
 func (c *ConfigHttpServer) ConcurrentLimitEnabled() bool {
