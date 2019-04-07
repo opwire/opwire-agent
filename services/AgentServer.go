@@ -156,7 +156,7 @@ func NewAgentServer(o AgentServerOptions) (s *AgentServer, err error) {
 
 	// creates a new HTTP server
 	s.httpOptions = new(httpServerOptions)
-	s.httpOptions.Addr = buildHttpAddr(s.options, conf)
+	s.httpOptions.Addr = buildHttpAddr(conf.HttpServer)
 	s.httpOptions.MaxHeaderBytes = 1 << 22 // new default: 4MB
 	httpConf := conf.HttpServer
 	if httpConf != nil {
@@ -721,27 +721,15 @@ func (s *AgentServer) unlockService() (error) {
 	return nil
 }
 
-func buildHttpAddr(opts AgentServerOptions, c *config.Configuration) string {
-	var conf *config.ConfigHttpServer
-	if c != nil {
-		conf = c.HttpServer
-	}
+func buildHttpAddr(conf *config.ConfigHttpServer) string {
 	var host string
-	if conf != nil && conf.Host != nil {
-		host = *conf.Host
+	if conf != nil {
+		host = conf.GetHost()
 	}
-	if opts != nil && opts.GetHost() != "" {
-		host = opts.GetHost()
-	}
-
 	port := DEFAULT_PORT
-	if conf != nil && conf.Port != nil {
-		port = *conf.Port
+	if conf != nil && conf.GetPort() != 0 {
+		port = conf.GetPort()
 	}
-	if opts != nil && opts.GetPort() != 0 {
-		port = opts.GetPort()
-	}
-
 	return fmt.Sprintf("%s:%d", host, port)
 }
 
