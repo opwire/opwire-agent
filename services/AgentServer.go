@@ -270,7 +270,7 @@ func (s *AgentServer) mappingResourcePatterns(conf *config.Configuration) {
 
 func (s *AgentServer) mappingResourcePattern(resourceName string, resourceConf *invokers.CommandEntrypoint) {
 	if len(resourceName) > 0 && resourceConf.Pattern != nil {
-		s.httpRouter.HandleFunc(*resourceConf.Pattern, s.makeInvocationHandler())
+		s.httpRouter.HandleFunc(*resourceConf.Pattern, s.makeUrlPatternHandler(resourceName))
 	}
 }
 
@@ -323,11 +323,27 @@ func (s *AgentServer) makeInvocationHandler() func(http.ResponseWriter, *http.Re
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
-		s.doExecuteCommand(w, r)
+		params := mux.Vars(r)
+		resourceName := params["resourceName"]
+		s.doExecuteCommand(w, r, resourceName, true)
 	}
 }
 
-func (s *AgentServer) doExecuteCommand(w http.ResponseWriter, r *http.Request) {
+func (s *AgentServer) makeUrlPatternHandler(resourceName string) func(http.ResponseWriter, *http.Request) {
+	return func (w http.ResponseWriter, r *http.Request) {
+		if !s.isReady() {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
+		if !isMethodAccepted(r.Method) {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		s.doExecuteCommand(w, r, resourceName, false)
+	}
+}
+
+func (s *AgentServer) doExecuteCommand(w http.ResponseWriter, r *http.Request, resourceName string, defaultUrl bool) {
 	expIn, expOut, expErr := s.getExplanationModes(r)
 
 	ib, tee := s.generateTeeBuffer()
@@ -341,7 +357,7 @@ func (s *AgentServer) doExecuteCommand(w http.ResponseWriter, r *http.Request) {
 	if ir != nil {
 		defer ir.Close()
 	}
-	ci, ciErr := s.buildCommandInvocation(r)
+	ci, ciErr := s.buildCommandInvocation(r, resourceName, defaultUrl)
 	if ciErr != nil {
 		w.Header().Set(RES_HEADER_ERROR_MESSAGE, ciErr.Error())
 		w.WriteHeader(http.StatusBadRequest)
@@ -463,10 +479,8 @@ func normalizeMethod(method string) (string, bool) {
 	return name, false
 }
 
-func (s *AgentServer) buildCommandInvocation(r *http.Request) (*invokers.CommandInvocation, error) {
+func (s *AgentServer) buildCommandInvocation(r *http.Request, resourceName string, defaultUrl bool) (*invokers.CommandInvocation, error) {
 	// extract command identifier
-	params := mux.Vars(r)
-	resourceName := params["resourceName"]
 	methodName := r.Method
 	log.Printf("Command [%s#%s] has been invoked", resourceName, methodName)
 	// prepare environment variables
@@ -482,7 +496,7 @@ func (s *AgentServer) buildCommandInvocation(r *http.Request) (*invokers.Command
 		}
 	}
 	// build the request query & data
-	if encoded, err := s.reqSerializer.Encode(r); err == nil {
+	if encoded, err := s.reqSerializer.Encode(r, defaultUrl); err == nil {
 		envs = append(envs, fmt.Sprintf("%s=%s", OPWIRE_REQUEST_PREFIX, encoded))
 	} else {
 		return nil, err

@@ -20,7 +20,7 @@ func TestReqSerializer_encode(t *testing.T) {
 		assert.Nil(t, req_err)
 		assert.NotNil(t, req)
 
-		enc, enc_err := rs.Encode(req)
+		enc, enc_err := rs.Encode(req, true)
 		assert.Nil(t, enc_err)
 		assert.NotNil(t, enc)
 
@@ -41,7 +41,7 @@ func TestReqSerializer_encode(t *testing.T) {
 		req.Header.Add("x-tags", "feature1")
 		req.Header.Add("X-Tags", "feature2")
 
-		enc, enc_err := rs.Encode(req)
+		enc, enc_err := rs.Encode(req, true)
 		assert.Nil(t, enc_err)
 		assert.NotNil(t, enc)
 
