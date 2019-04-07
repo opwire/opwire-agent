@@ -52,6 +52,7 @@ type AgentServer struct {
 	options AgentServerOptions
 	listeningLock int32
 	explanationEnabled bool
+	outputCombined bool
 }
 
 type httpServerOptions struct {
@@ -174,6 +175,9 @@ func NewAgentServer(o AgentServerOptions) (s *AgentServer, err error) {
 	// other configurations
 	if conf.Agent != nil && conf.Agent.ExplanationEnabled != nil {
 		s.explanationEnabled = *conf.Agent.ExplanationEnabled
+	}
+	if conf.Agent != nil && conf.Agent.OutputCombined != nil {
+		s.outputCombined = *conf.Agent.OutputCombined
 	}
 
 	// starts the server by default
@@ -395,6 +399,14 @@ func (s *AgentServer) doExecuteCommand(w http.ResponseWriter, r *http.Request, r
 	}
 	var ob bytes.Buffer
 	var eb bytes.Buffer
+	var ow, ew io.Writer
+	if s.outputCombined {
+		ow = &ob
+		ew = &ob
+	} else {
+		ow = &ob
+		ew = &eb
+	}
 	var state *invokers.ExecutionState
 	var err error
 
@@ -410,12 +422,12 @@ func (s *AgentServer) doExecuteCommand(w http.ResponseWriter, r *http.Request, r
 
 	if s.reqRestrictor.HasSingleFlight() {
 		_state, _err, _ := s.reqRestrictor.FilterByDigest(r, func() (interface{}, error) {
-			return s.executor.Run(ir, ci, &ob, &eb)
+			return s.executor.Run(ir, ci, ow, ew)
 		})
 		state = _state.(*invokers.ExecutionState)
 		err = _err
 	} else {
-		state, err = s.executor.Run(ir, ci, &ob, &eb)
+		state, err = s.executor.Run(ir, ci, ow, ew)
 	}
 
 	if state != nil && state.IsTimeout {
@@ -626,11 +638,18 @@ func (s *AgentServer) explainRequest(w http.ResponseWriter, ib *bytes.Buffer, ci
 func (s *AgentServer) explainResult(w http.ResponseWriter, ib *bytes.Buffer, ci *invokers.CommandInvocation, err error, ob *bytes.Buffer, eb *bytes.Buffer) {
 	s.explainRequest(w, ib, ci)
 
-	if err != nil {
-		printSection(w, "stderr", eb.Bytes())
-		printSection(w, "error", []byte(err.Error()))
+	if s.outputCombined {
+		printSection(w, "stderr + stdout", ob.Bytes())
 	} else {
-		printSection(w, "stdout", ob.Bytes())
+		if err != nil {
+			printSection(w, "stderr", eb.Bytes())
+		} else {
+			printSection(w, "stdout", ob.Bytes())
+		}
+	}
+
+	if err != nil {
+		printSection(w, "error", []byte(err.Error()))
 	}
 }
 

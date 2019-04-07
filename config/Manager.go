@@ -23,6 +23,7 @@ type Configuration struct {
 
 type ConfigAgent struct {
 	ExplanationEnabled *bool `json:"explanation-enabled"`
+	OutputCombined *bool `json:"combine-stderr-stdout"` // 2>&1
 }
 
 type ConfigHttpServer struct {

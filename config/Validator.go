@@ -59,6 +59,16 @@ var configurationSchema string = `{
 									"type": "boolean"
 								}
 							]
+						},
+						"combine-stderr-stdout": {
+							"oneOf": [
+								{
+									"type": "null"
+								},
+								{
+									"type": "boolean"
+								}
+							]
 						}
 					}
 				}
