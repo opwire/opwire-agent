@@ -2,6 +2,7 @@ package utils
 
 import (
 	"math"
+	"reflect"
 	"strings"
 )
 
@@ -40,4 +41,26 @@ func PadString(text string, align AlignmentType, lineLength int, seed string) st
 	}
 
 	return line
+}
+
+// v ~ reflect.ValueOf(x)
+// x ~ v.Interface()
+// reflect.TypeOf(x) ~ v.Type()
+func IsZero(x interface{}) bool {
+	v := reflect.ValueOf(x)
+	return !v.IsValid() || reflect.DeepEqual(v.Interface(), reflect.Zero(v.Type()).Interface())
+}
+
+func IsEmpty(x interface{}) bool {
+	if x == nil {
+		return true
+	}
+	t := reflect.TypeOf(x).String()
+	switch(t) {
+	case "string":
+		return len(x.(string)) == 0
+	case "[]uint8":
+		return len(x.([]byte)) == 0
+	}
+	return IsZero(x)
 }

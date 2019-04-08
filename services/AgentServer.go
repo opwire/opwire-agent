@@ -641,11 +641,8 @@ func (s *AgentServer) explainResult(w http.ResponseWriter, ib *bytes.Buffer, ci 
 	if s.outputCombined {
 		printSection(w, "stderr + stdout", ob.Bytes())
 	} else {
-		if err != nil {
-			printSection(w, "stderr", eb.Bytes())
-		} else {
-			printSection(w, "stdout", ob.Bytes())
-		}
+		printSection(w, "stderr", eb.Bytes())
+		printSection(w, "stdout", ob.Bytes())
 	}
 
 	if err != nil {
@@ -656,7 +653,9 @@ func (s *AgentServer) explainResult(w http.ResponseWriter, ib *bytes.Buffer, ci 
 func printSection(w http.ResponseWriter, label string, data interface{}) {
 	header := utils.PadString("[" + label, utils.LEFT, 80, "-")
 	footer := utils.PadString(label + "]", utils.RIGHT, 80, "-")
-	io.WriteString(w, fmt.Sprintf("\n%s\n%s\n%s\n", header, data, footer))
+	if !utils.IsEmpty(data) {
+		io.WriteString(w, fmt.Sprintf("\n%s\n%s\n%s\n", header, data, footer))
+	}
 }
 
 func printCollection(w http.ResponseWriter, label string, settings []string) {

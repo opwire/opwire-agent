@@ -30,10 +30,10 @@ type ConfigHttpServer struct {
 	managerOptions ManagerOptions
 	Host *string `json:"host"`
 	Port *uint `json:"port"`
-	BaseUrl *string `json:"baseurl"`
 	MaxHeaderBytes *int `json:"max-header-bytes"`
 	ReadTimeout *string `json:"read-timeout"`
 	WriteTimeout *string `json:"write-timeout"`
+	BaseUrl *string `json:"baseurl"`
 	MyConcurrentLimitEnabled *bool `json:"concurrent-limit-enabled"`
 	MyConcurrentLimitTotal *int `json:"concurrent-limit-total"`
 	MySingleFlightEnabled *bool `json:"single-flight-enabled"`
