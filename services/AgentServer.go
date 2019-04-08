@@ -370,7 +370,7 @@ func (s *AgentServer) makeUrlPatternHandler(resourceName string) func(http.Respo
 	}
 }
 
-func (s *AgentServer) doExecuteCommand(w http.ResponseWriter, r *http.Request, resourceName string, defaultUrl bool) {
+func (s *AgentServer) doExecuteCommand(w http.ResponseWriter, r *http.Request, resourceName string, fromExecUrl bool) {
 	expIn, expOut, expErr := s.getExplanationModes(r)
 
 	ib, tee := s.generateTeeBuffer()
@@ -384,7 +384,7 @@ func (s *AgentServer) doExecuteCommand(w http.ResponseWriter, r *http.Request, r
 	if ir != nil {
 		defer ir.Close()
 	}
-	ci, ciErr := s.buildCommandInvocation(r, resourceName, defaultUrl)
+	ci, ciErr := s.buildCommandInvocation(r, resourceName, fromExecUrl)
 	if ciErr != nil {
 		w.Header().Set(RES_HEADER_ERROR_MESSAGE, ciErr.Error())
 		w.WriteHeader(http.StatusBadRequest)
@@ -514,7 +514,7 @@ func normalizeMethod(method string) (string, bool) {
 	return name, false
 }
 
-func (s *AgentServer) buildCommandInvocation(r *http.Request, resourceName string, defaultUrl bool) (*invokers.CommandInvocation, error) {
+func (s *AgentServer) buildCommandInvocation(r *http.Request, resourceName string, fromExecUrl bool) (*invokers.CommandInvocation, error) {
 	// extract command identifier
 	methodName := r.Method
 	log.Printf("Command [%s#%s] has been invoked", resourceName, methodName)
@@ -531,7 +531,7 @@ func (s *AgentServer) buildCommandInvocation(r *http.Request, resourceName strin
 		}
 	}
 	// build the request query & data
-	if encoded, err := s.reqSerializer.Encode(r, defaultUrl); err == nil {
+	if encoded, err := s.reqSerializer.Encode(r, fromExecUrl); err == nil {
 		envs = append(envs, fmt.Sprintf("%s=%s", OPWIRE_REQUEST_PREFIX, encoded))
 	} else {
 		return nil, err
@@ -658,9 +658,9 @@ func printSection(w http.ResponseWriter, label string, data interface{}) {
 	}
 }
 
-func printCollection(w http.ResponseWriter, label string, settings []string) {
-	if len(settings) > 0 {
-		lines := utils.Map(settings, func(s string, i int) string {
+func printCollection(w http.ResponseWriter, label string, listData []string) {
+	if len(listData) > 0 {
+		lines := utils.Map(listData, func(s string, i int) string {
 			return fmt.Sprintf("%d) %s", (i + 1), s)
 		})
 		section := strings.Join(lines, "\n")
@@ -668,22 +668,22 @@ func printCollection(w http.ResponseWriter, label string, settings []string) {
 	}
 }
 
-func printJsonString(w http.ResponseWriter, label string, dataText string) error {
-	if len(dataText) > 0 {
+func printJsonString(w http.ResponseWriter, label string, textData string) error {
+	if len(textData) > 0 {
 		dataMap := make(map[string]interface{}, 0)
-		err := json.Unmarshal([]byte(dataText), &dataMap)
+		err := json.Unmarshal([]byte(textData), &dataMap)
 		if err == nil {
 			return printJsonObject(w, label, dataMap)
 		} else {
-			printSection(w, label + " (text)", dataText)
+			printSection(w, label + " (text)", textData)
 		}
 	}
 	return nil
 }
 
-func printJsonObject(w http.ResponseWriter, label string, dataMap map[string]interface{}) error {
-	if len(dataMap) > 0 {
-		dataJson, err := json.MarshalIndent(dataMap, "", "  ")
+func printJsonObject(w http.ResponseWriter, label string, hashData map[string]interface{}) error {
+	if len(hashData) > 0 {
+		dataJson, err := json.MarshalIndent(hashData, "", "  ")
 		if err != nil {
 			return err
 		}
@@ -776,18 +776,8 @@ func validateResourcePatterns(conf *config.Configuration) error {
 		}
 	}
 
-	errstrs := []string {}
-	for _, dup := range patterns {
-		if len(dup) > 1 {
-			errstrs = append(errstrs, strings.Join(dup, ", "))
-		}
-	}
-	if len(errstrs) > 0 {
-		errstrs = append([]string {"Command url patterns are duplicated. Errors:"}, errstrs...)
-		return fmt.Errorf(strings.Join(errstrs, "\n - "))
-	}
-
-	return nil
+	dupPatterns := filterDuplicatedPatterns(patterns)
+	return utils.CombineErrors("Command url patterns are duplicated. Errors:", dupPatterns)
 }
 
 var re *regexp.Regexp = regexp.MustCompile(`{([^{]*)}`)
@@ -800,6 +790,16 @@ func countDuplicatedPatterns(patterns map[string][]string, resourceConf *invoker
 		}
 		patterns[s] = append(patterns[s], *resourceConf.Pattern)
 	}
+}
+
+func filterDuplicatedPatterns(patterns map[string][]string) []string {
+	merged := make([]string, 0)
+	for _, dup := range patterns {
+		if len(dup) > 1 {
+			merged = append(merged, strings.Join(dup, ", "))
+		}
+	}
+	return merged
 }
 
 const CTRL_BASEURL string = `/_`

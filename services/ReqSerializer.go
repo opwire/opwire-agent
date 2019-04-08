@@ -21,14 +21,14 @@ func NewReqSerializer() (*ReqSerializer, error) {
 	return &ReqSerializer{}, nil
 }
 
-func (s *ReqSerializer) Encode(r *http.Request, defaultUrl bool) ([]byte, error) {
+func (s *ReqSerializer) Encode(r *http.Request, fromExecUrl bool) ([]byte, error) {
 	packet := &RequestPacket{
 		Method: &r.Method,
 		Path: &r.URL.Path,
 		Header: r.Header,
 		Query: r.URL.Query(),
 	}
-	if !defaultUrl {
+	if !fromExecUrl {
 		packet.Params = mux.Vars(r)
 	}
 	return json.Marshal(packet)
