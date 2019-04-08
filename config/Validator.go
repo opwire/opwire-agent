@@ -262,23 +262,13 @@ var configurationSchema string = `{
 						}
 					]
 				},
-				"concurrent-limit-enabled": {
+				"concurrent-limit": {
 					"oneOf": [
 						{
 							"type": "null"
 						},
 						{
-							"type": "boolean"
-						}
-					]
-				},
-				"concurrent-limit-total": {
-					"oneOf": [
-						{
-							"type": "null"
-						},
-						{
-							"type": "integer"
+							"$ref": "#/definitions/SectionConcurrentLimit"
 						}
 					]
 				},
@@ -359,6 +349,33 @@ var configurationSchema string = `{
 						},
 						{
 							"type": "boolean"
+						}
+					]
+				}
+			},
+			"additionalProperties": false
+		},
+		"SectionConcurrentLimit": {
+			"type": "object",
+			"properties": {
+				"enabled": {
+					"oneOf": [
+						{
+							"type": "null"
+						},
+						{
+							"type": "boolean"
+						}
+					]
+				},
+				"total": {
+					"oneOf": [
+						{
+							"type": "null"
+						},
+						{
+							"type": "integer",
+							"minimum": 1
 						}
 					]
 				}

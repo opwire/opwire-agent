@@ -32,8 +32,7 @@ type ConfigHttpServer struct {
 	ReadTimeout *string `json:"read-timeout"`
 	WriteTimeout *string `json:"write-timeout"`
 	BaseUrl *string `json:"baseurl"`
-	MyConcurrentLimitEnabled *bool `json:"concurrent-limit-enabled"`
-	MyConcurrentLimitTotal *int `json:"concurrent-limit-total"`
+	ConcurrentLimit *SectionConcurrentLimit `json:"concurrent-limit"`
 	MySingleFlightEnabled *bool `json:"single-flight-enabled"`
 	MySingleFlightReqIdName *string `json:"single-flight-req-id"`
 	MySingleFlightByMethod *bool `json:"single-flight-by-method"`
@@ -156,17 +155,11 @@ func (c *ConfigHttpServer) GetWriteTimeout() (time.Duration, error) {
 }
 
 func (c *ConfigHttpServer) ConcurrentLimitEnabled() bool {
-	if c.MyConcurrentLimitEnabled == nil {
-		return false
-	}
-	return *c.MyConcurrentLimitEnabled
+	return c.GetConcurrentLimit().GetEnabled()
 }
 
 func (c *ConfigHttpServer) ConcurrentLimitTotal() int {
-	if c.MyConcurrentLimitTotal == nil {
-		return 0
-	}
-	return *c.MyConcurrentLimitTotal
+	return c.GetConcurrentLimit().GetTotal()
 }
 
 func (c *ConfigHttpServer) SingleFlightEnabled() bool {
@@ -250,4 +243,30 @@ func (c *ConfigHttpServer) SingleFlightByUserIP() bool {
 		return false
 	}
 	return *c.MySingleFlightByUserIP
+}
+
+func (c *ConfigHttpServer) GetConcurrentLimit() *SectionConcurrentLimit {
+	if c.ConcurrentLimit == nil {
+		return &SectionConcurrentLimit{}
+	}
+	return c.ConcurrentLimit
+}
+
+type SectionConcurrentLimit struct {
+	Enabled *bool `json:"enabled"`
+	Total *int `json:"total"`
+}
+
+func (c *SectionConcurrentLimit) GetEnabled() bool {
+	if c.Enabled == nil {
+		return false
+	}
+	return *c.Enabled
+}
+
+func (c *SectionConcurrentLimit) GetTotal() int {
+	if c.Total == nil {
+		return 0
+	}
+	return *c.Total
 }
