@@ -272,6 +272,16 @@ var configurationSchema string = `{
 						}
 					]
 				},
+				"single-flight": {
+					"oneOf": [
+						{
+							"type": "null"
+						},
+						{
+							"$ref": "#/definitions/SectionSingleFlight"
+						}
+					]
+				},
 				"single-flight-enabled": {
 					"oneOf": [
 						{
@@ -376,6 +386,92 @@ var configurationSchema string = `{
 						{
 							"type": "integer",
 							"minimum": 1
+						}
+					]
+				}
+			},
+			"additionalProperties": false
+		},
+		"SectionSingleFlight": {
+			"type": "object",
+			"properties": {
+				"enabled": {
+					"oneOf": [
+						{
+							"type": "null"
+						},
+						{
+							"type": "boolean"
+						}
+					]
+				},
+				"req-id": {
+					"oneOf": [
+						{
+							"type": "null"
+						},
+						{
+							"type": "string"
+						}
+					]
+				},
+				"by-method": {
+					"oneOf": [
+						{
+							"type": "null"
+						},
+						{
+							"type": "boolean"
+						}
+					]
+				},
+				"by-path": {
+					"oneOf": [
+						{
+							"type": "null"
+						},
+						{
+							"type": "boolean"
+						}
+					]
+				},
+				"by-headers": {
+					"oneOf": [
+						{
+							"type": "null"
+						},
+						{
+							"type": "string"
+						}
+					]
+				},
+				"by-queries": {
+					"oneOf": [
+						{
+							"type": "null"
+						},
+						{
+							"type": "string"
+						}
+					]
+				},
+				"by-body": {
+					"oneOf": [
+						{
+							"type": "null"
+						},
+						{
+							"type": "boolean"
+						}
+					]
+				},
+				"by-userip": {
+					"oneOf": [
+						{
+							"type": "null"
+						},
+						{
+							"type": "boolean"
 						}
 					]
 				}

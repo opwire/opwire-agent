@@ -33,14 +33,7 @@ type ConfigHttpServer struct {
 	WriteTimeout *string `json:"write-timeout"`
 	BaseUrl *string `json:"baseurl"`
 	ConcurrentLimit *SectionConcurrentLimit `json:"concurrent-limit"`
-	MySingleFlightEnabled *bool `json:"single-flight-enabled"`
-	MySingleFlightReqIdName *string `json:"single-flight-req-id"`
-	MySingleFlightByMethod *bool `json:"single-flight-by-method"`
-	MySingleFlightByPath *bool `json:"single-flight-by-path"`
-	MySingleFlightByHeaders *string `json:"single-flight-by-headers"`
-	MySingleFlightByQueries *string `json:"single-flight-by-queries"`
-	MySingleFlightByBody *bool `json:"single-flight-by-body"`
-	MySingleFlightByUserIP *bool `json:"single-flight-by-userip"`
+	SingleFlight *SectionSingleFlight `json:"single-flight"`
 }
 
 type Manager struct {
@@ -163,86 +156,35 @@ func (c *ConfigHttpServer) ConcurrentLimitTotal() int {
 }
 
 func (c *ConfigHttpServer) SingleFlightEnabled() bool {
-	if c.MySingleFlightEnabled == nil {
-		return true
-	}
-	return *c.MySingleFlightEnabled
+	return c.GetSingleFlight().GetEnabled()
 }
 
 func (c *ConfigHttpServer) SingleFlightReqIdName() string {
-	if c.MySingleFlightReqIdName == nil {
-		return ""
-	}
-	return *c.MySingleFlightReqIdName
+	return c.GetSingleFlight().GetReqIdName()
 }
 
 func (c *ConfigHttpServer) SingleFlightByMethod() bool {
-	if c.MySingleFlightByMethod == nil {
-		if c.MySingleFlightReqIdName != nil && len(*c.MySingleFlightReqIdName) > 0 {
-			return false
-		}
-		if c.MySingleFlightByPath != nil && *c.MySingleFlightByPath {
-			return true
-		}
-		if c.MySingleFlightByUserIP != nil && *c.MySingleFlightByUserIP {
-			return true
-		}
-		return false
-	}
-	return *c.MySingleFlightByMethod
+	return c.GetSingleFlight().GetByMethod()
 }
 
 func (c *ConfigHttpServer) SingleFlightByPath() bool {
-	if c.MySingleFlightByPath == nil {
-		if c.MySingleFlightReqIdName != nil && len(*c.MySingleFlightReqIdName) > 0 {
-			return false
-		}
-		if c.MySingleFlightByMethod != nil && *c.MySingleFlightByMethod {
-			return true
-		}
-		if c.MySingleFlightByUserIP != nil && *c.MySingleFlightByUserIP {
-			return true
-		}
-		return false
-	}
-	return *c.MySingleFlightByPath
+	return c.GetSingleFlight().GetByPath()
 }
 
 func (c *ConfigHttpServer) SingleFlightByHeaders() []string {
-	if c.MySingleFlightByHeaders == nil {
-		return []string{}
-	}
-	return utils.Split(*c.MySingleFlightByHeaders, ",")
+	return c.GetSingleFlight().GetByHeaders()
 }
 
 func (c *ConfigHttpServer) SingleFlightByQueries() []string {
-	if c.MySingleFlightByQueries == nil {
-		return []string{}
-	}
-	return utils.Split(*c.MySingleFlightByQueries, ",")
+	return c.GetSingleFlight().GetByQueries()
 }
 
 func (c *ConfigHttpServer) SingleFlightByBody() bool {
-	if c.MySingleFlightByBody == nil {
-		return false
-	}
-	return *c.MySingleFlightByBody
+	return c.GetSingleFlight().GetByBody()
 }
 
 func (c *ConfigHttpServer) SingleFlightByUserIP() bool {
-	if c.MySingleFlightByUserIP == nil {
-		if c.MySingleFlightReqIdName != nil && len(*c.MySingleFlightReqIdName) > 0 {
-			return false
-		}
-		if c.MySingleFlightByMethod != nil && *c.MySingleFlightByMethod {
-			return true
-		}
-		if c.MySingleFlightByPath != nil && *c.MySingleFlightByPath {
-			return true
-		}
-		return false
-	}
-	return *c.MySingleFlightByUserIP
+	return c.GetSingleFlight().GetByUserIP()
 }
 
 func (c *ConfigHttpServer) GetConcurrentLimit() *SectionConcurrentLimit {
@@ -269,4 +211,105 @@ func (c *SectionConcurrentLimit) GetTotal() int {
 		return 0
 	}
 	return *c.Total
+}
+
+func (c *ConfigHttpServer) GetSingleFlight() *SectionSingleFlight {
+	if c.SingleFlight == nil {
+		return &SectionSingleFlight{}
+	}
+	return c.SingleFlight
+}
+
+type SectionSingleFlight struct {
+	Enabled *bool `json:"enabled"`
+	ReqIdName *string `json:"req-id"`
+	ByMethod *bool `json:"by-method"`
+	ByPath *bool `json:"by-path"`
+	ByHeaders *string `json:"by-headers"`
+	ByQueries *string `json:"by-queries"`
+	ByBody *bool `json:"by-body"`
+	ByUserIP *bool `json:"by-userip"`
+}
+
+func (c *SectionSingleFlight) GetEnabled() bool {
+	if c.Enabled == nil {
+		return false
+	}
+	return *c.Enabled
+}
+
+func (c *SectionSingleFlight) GetReqIdName() string {
+	if c.ReqIdName == nil {
+		return ""
+	}
+	return *c.ReqIdName
+}
+
+func (c *SectionSingleFlight) GetByMethod() bool {
+	if c.ByMethod == nil {
+		if c.ReqIdName != nil && len(*c.ReqIdName) > 0 {
+			return false
+		}
+		if c.ByPath != nil && *c.ByPath {
+			return true
+		}
+		if c.ByUserIP != nil && *c.ByUserIP {
+			return true
+		}
+		return false
+	}
+	return *c.ByMethod
+}
+
+func (c *SectionSingleFlight) GetByPath() bool {
+	if c.ByPath == nil {
+		if c.ReqIdName != nil && len(*c.ReqIdName) > 0 {
+			return false
+		}
+		if c.ByMethod != nil && *c.ByMethod {
+			return true
+		}
+		if c.ByUserIP != nil && *c.ByUserIP {
+			return true
+		}
+		return false
+	}
+	return *c.ByPath
+}
+
+func (c *SectionSingleFlight) GetByHeaders() []string {
+	if c.ByHeaders == nil {
+		return []string{}
+	}
+	return utils.Split(*c.ByHeaders, ",")
+}
+
+func (c *SectionSingleFlight) GetByQueries() []string {
+	if c.ByQueries == nil {
+		return []string{}
+	}
+	return utils.Split(*c.ByQueries, ",")
+}
+
+func (c *SectionSingleFlight) GetByBody() bool {
+	if c.ByBody == nil {
+		return false
+	}
+	return *c.ByBody
+}
+
+func (c *SectionSingleFlight) GetByUserIP() bool {
+	if c.ByUserIP == nil {
+		if c.ReqIdName != nil && len(*c.ReqIdName) > 0 {
+			return false
+		}
+		if c.ByMethod != nil && *c.ByMethod {
+			return true
+		}
+		if c.ByPath != nil && *c.ByPath {
+			return true
+		}
+		return false
+	}
+	return *c.ByUserIP
 }
