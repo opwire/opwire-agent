@@ -8,6 +8,7 @@ import (
 const RESOURCE_NAME_PATTERN string = `[a-zA-Z][a-zA-Z0-9_-]*`
 const BASEURL_PATTERN string = `([\\/]|([\\/][a-zA-Z]|[\\/][a-zA-Z][a-zA-Z0-9_-]*[a-zA-Z0-9])+)?`
 const TIMEOUT_PATTERN string = `([0-9]+h)?([0-9]+m)?([0-9]+s)?([0-9]+ms)?([0-9]+[uµ]s)?([0-9]+ns)?`
+const VERSION_PATTERN string = `[v]?(\\d+\\.)?(\\d+\\.)?(\\*|\\d+)`
 
 type Validator struct {
 	schemaLoader gojsonschema.JSONLoader
@@ -40,7 +41,7 @@ var configurationSchema string = `{
 	"properties": {
 		"version": {
 			"type": "string",
-			"pattern": "^[v]?(\\d+\\.)?(\\d+\\.)?(\\*|\\d+)$"
+			"pattern": "^` + VERSION_PATTERN + `$"
 		},
 		"agent": {
 			"oneOf": [

@@ -97,11 +97,11 @@ func NewAgentServer(o AgentServerOptions) (s *AgentServer, err error) {
 		return nil, err
 	}
 	if result != nil && !result.Valid() {
-		errstrs := []string {"The configuration is not valid. Errors:"}
-		for _, desc := range result.Errors() {
-			errstrs = append(errstrs, fmt.Sprintf("%s", desc))
+		errs := make([]string, len(result.Errors()))
+		for i, arg := range result.Errors() {
+			errs[i] = arg.String()
 		}
-		return nil, fmt.Errorf(strings.Join(errstrs, "\n - "))
+		return nil, utils.CombineErrors("The configuration is invalid. Errors:", errs)
 	}
 	if conf == nil {
 		conf = &config.Configuration{}

@@ -6,7 +6,7 @@ import (
 )
 
 func CombineErrors(label string, messages []string) error {
-	errstrs := []string {}
+	errstrs := make([]string, 0)
 	for _, msg := range messages {
 		if len(msg) > 0 {
 			errstrs = append(errstrs, msg)

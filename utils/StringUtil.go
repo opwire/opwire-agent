@@ -64,3 +64,15 @@ func IsEmpty(x interface{}) bool {
 	}
 	return IsZero(x)
 }
+
+type Stringable interface {
+	String() string
+}
+
+func Stringify(srcs []Stringable) []string {
+	strs := make([]string, len(srcs))
+	for i, src := range srcs {
+		strs[i] = src.String()
+	}
+	return strs
+}

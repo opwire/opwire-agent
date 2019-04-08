@@ -2,9 +2,7 @@ package config
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
-	"strings"
 	"time"
 	"github.com/opwire/opwire-agent/invokers"
 	"github.com/opwire/opwire-agent/storages"
@@ -105,23 +103,6 @@ func (m *Manager) loadJson() (*Configuration, error) {
 	}
 
 	return config, nil
-}
-
-func (m *Manager) Init(cfg *Configuration, result ValidationResult, err error) (*Configuration, error) {
-	if err != nil {
-		return cfg, err
-	}
-	if result != nil && !result.Valid() {
-		errstrs := []string {"The configuration is invalid. Errors:"}
-		for _, desc := range result.Errors() {
-			errstrs = append(errstrs, fmt.Sprintf("%s", desc))
-		}
-		return cfg, fmt.Errorf(strings.Join(errstrs, "\n - "))
-	}
-	if cfg != nil {
-		
-	}
-	return cfg, nil
 }
 
 func (c *ConfigHttpServer) GetHost() string {
