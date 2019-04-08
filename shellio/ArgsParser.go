@@ -20,6 +20,7 @@ type AgentCmdArgs struct {
 type AgentManifest interface {
 	GetRevision() string
 	GetVersion() string
+	String() (string, bool)
 }
 
 func ParseArgs(manifest AgentManifest) (*AgentCmdArgs, error) {
@@ -27,7 +28,7 @@ func ParseArgs(manifest AgentManifest) (*AgentCmdArgs, error) {
 		return nil, fmt.Errorf("Manifest must not be nil")
 	}
 	args := &AgentCmdArgs{}
-	_, err := flags.ParseArgs(args, os.Args[1:])
+	_, err := flags.ParseArgs(args, utils.SliceTail(os.Args, 2))
 	args.manifest = manifest
 	return args, err
 }

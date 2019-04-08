@@ -113,3 +113,37 @@ func FilterBySuffix(arr []string, suffix string) ([]string) {
 	}
 	return result
 }
+
+func SubSlice(arr []string, from int, to int) []string {
+	if arr == nil {
+		return nil
+	}
+	size := len(arr)
+	if size <= from {
+		return []string{}
+	}
+	if size < to {
+		return arr[from:]
+	}
+	return arr[from:to]
+}
+
+func SliceHead(arr []string, before int) []string {
+	if arr == nil {
+		return nil
+	}
+	if before < len(arr) {
+		return arr[:before]
+	}
+	return arr[:]
+}
+
+func SliceTail(arr []string, from int) []string {
+	if arr == nil {
+		return nil
+	}
+	if len(arr) <= from {
+		return []string{}
+	}
+	return arr[from:]
+}

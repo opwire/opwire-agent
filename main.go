@@ -1,21 +1,22 @@
 package main
 
 import (
+	"os"
 	"github.com/opwire/opwire-agent/shellio"
-	"github.com/opwire/opwire-agent/services"
 )
 
 func main() {
 	manifest := &Manifest{}
 
-	if info, ok := manifest.String(); ok {
-		shellio.Println(info)
+	cmd, err := shellio.NewAgentCommander(manifest)
+	if err != nil {
+		shellio.Println("Cannot create Commander, error: %s", err.Error())
+		os.Exit(2)
 	}
 
-	args, _ := shellio.ParseArgs(manifest)
-
-	_, err := services.NewAgentServer(args)
+	err = cmd.Run()
 	if err != nil {
-		shellio.Println("Fatal: %s", err.Error())
+		shellio.Println("Cannot process command, error: %s", err.Error())
+		os.Exit(1)
 	}
 }
