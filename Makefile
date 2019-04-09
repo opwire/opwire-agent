@@ -59,11 +59,11 @@ TARGET_OS_ARCH= \
 endif
 
 build-dev:
-	go build -ldflags "${GO_LDFLAGS}"
+	go build -ldflags "${GO_LDFLAGS}" -ldflags="-s -w"
 
 build-lab:
 ifneq ($(filter 1,$(FORCE_BUILD) $(OK_FOR_TEST)),)
-	go build -ldflags "${GO_LDFLAGS}" -ldflags="-s -w"
+	go build -ldflags "${GO_LDFLAGS}"
 else
 	@echo "Please commit all of changes before build a LAB edition"
 endif

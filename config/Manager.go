@@ -11,7 +11,7 @@ import (
 
 type Configuration struct {
 	Version string `json:"version"`
-	Agent *ConfigAgent `json:"agent"`
+	Agent *configAgent `json:"agent"`
 	Main *invokers.CommandEntrypoint `json:"main-resource"`
 	Resources map[string]invokers.CommandEntrypoint `json:"resources"`
 	Settings map[string]interface{} `json:"settings"`
@@ -80,49 +80,49 @@ func (m *Manager) loadJson() (*Configuration, error) {
 	return config, nil
 }
 
-type ConfigAgent struct {
-	Explanation *SectionExplanation `json:"explanation"`
+type configAgent struct {
+	Explanation *sectionExplanation `json:"explanation"`
 	OutputCombined *bool `json:"combine-stderr-stdout"` // 2>&1
 }
 
-func (c *Configuration) GetAgent() *ConfigAgent {
+func (c *Configuration) GetAgent() *configAgent {
 	if c.Agent == nil {
-		return &ConfigAgent{}
+		return &configAgent{}
 	}
 	return c.Agent
 }
 
-func (c *ConfigAgent) GetExplanation() *SectionExplanation {
+func (c *configAgent) GetExplanation() *sectionExplanation {
 	if c.Explanation == nil {
-		return &SectionExplanation{}
+		return &sectionExplanation{}
 	}
 	return c.Explanation
 }
 
-func (c *ConfigAgent) GetExplanationEnabled() bool {
+func (c *configAgent) GetExplanationEnabled() bool {
 	return c.GetExplanation().GetEnabled()
 }
 
-func (c *ConfigAgent) GetOutputCombined() bool {
+func (c *configAgent) GetOutputCombined() bool {
 	if c.OutputCombined == nil {
 		return false
 	}
 	return *c.OutputCombined
 }
 
-type SectionExplanation struct {
+type sectionExplanation struct {
 	Enabled *bool `json:"enabled"`
 	Format *string `json:"format"`
 }
 
-func (c *SectionExplanation) GetEnabled() bool {
+func (c *sectionExplanation) GetEnabled() bool {
 	if c.Enabled == nil {
 		return false
 	}
 	return *c.Enabled
 }
 
-func (c *SectionExplanation) GetFormat() string {
+func (c *sectionExplanation) GetFormat() string {
 	if c.Format == nil {
 		return ""
 	}

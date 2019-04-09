@@ -14,6 +14,13 @@ type AgentCommander struct {
 func NewAgentCommander(manifest AgentManifest) (*AgentCommander, error) {
 	c := new(AgentCommander)
 
+	clp.HelpFlag = clp.BoolFlag{
+		Name: "help",
+	}
+	clp.VersionFlag = clp.BoolFlag{
+		Name: "version",
+	}
+
 	app := clp.NewApp()
 	app.Name = "opwire-agent"
 	app.Usage = "Bring your command line programs to Rest API"
@@ -34,7 +41,7 @@ func NewAgentCommander(manifest AgentManifest) (*AgentCommander, error) {
 					Usage: "The command string that will be executed directly",
 				},
 				clp.StringFlag{
-					Name: "host, bind, b",
+					Name: "host, bind-addr, h",
 					Usage: "Agent http server host",
 				},
 				clp.UintFlag{
