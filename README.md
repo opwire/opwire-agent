@@ -41,11 +41,38 @@ Configuration in JSON pseudo-code:
 ```javascript
 {
   "version": "<VERSION_OF_OPWIRE_AGENT>",
+  "agent": {
+    "explanation": {
+      "enabled": true
+    }
+  },
   "main-resource": {
     "default": {
       "command": "<COMMAND LINE>",
       "timeout": 0 // no timeout by default
-    }
+    },
+    "methods": {
+      "GET": {
+        "command": "<COMMAND LINE FOR GET/LOAD/VIEW ACTION>"
+      },
+      "POST": {
+        "command": "<COMMAND LINE FOR POST/INSERT/CREATE ACTION>"
+      },
+      "PUT": {
+        "command": "<COMMAND LINE FOR PUT/REPLACE/UPDATE ACTION>"
+      },
+      "PATCH": {
+        "command": "<COMMAND LINE FOR PATCH/MODIFY ACTION>"
+      },
+      "DELETE": {
+        "command": "<COMMAND LINE FOR DELETE/REMOVE ACTION>"
+      }
+    },
+    "settings": {
+      "<YOUR_PARAM_1>": "<Text_Val_1",
+      "<YOUR_PARAM_2>": "<Text_Val_2"
+    },
+    "settings-format": "json" // "json" or "flat"
   },
   "resources": {
     "<NAME_OF_RESOURCE>": {
@@ -55,6 +82,13 @@ Configuration in JSON pseudo-code:
       }
     },
     // ...
+  },
+  "http-server": {
+    "host": "<YOUR-BINDING-ADDR>",
+    "port": 8888, // default: 17779
+    "baseurl": "/run", // default: "/$"
+    "read-timeout": "60s", // default: 30s
+    "write-timeout": "90s" // default: 30s
   }
 }
 ```
@@ -63,23 +97,49 @@ Example:
 
 ```javascript
 {
-  "version": "v1.0.3",
+  "version": "v1.0.7",
   "main-resource": {
     "default": {
       "command": "echo 'Hello opwire-agent'"
     }
   },
   "resources": {
-    "spawn": {
+    "products": {
       "default": {
-        "command": "bash",
+        "pattern": "/products",
+        "command": "node product.js --action=list",
         "timeout": 5
       }
     },
-    "ps-all": {
-      "default": {
-        "command": "ps -All"
-      }
+    "product": {
+      "methods": {
+        "GET": {
+          "pattern": "/product/{productId}",
+          "command": "node product.js --action=details"
+        },
+        "POST": {
+          "pattern": "/product",
+          "command": "node product.js --action=create"
+        },
+        "PUT": {
+          "pattern": "/product/{productId}",
+          "command": "node product.js --action=update"
+        },
+        "PATCH": {
+          "pattern": "/product/{productId}",
+          "command": "node product.js --action=change"
+        },
+        "DELETE": {
+          "pattern": "/product/{productId}",
+          "command": "node product.js --action=remove"
+        }
+      },
+      "settings": {
+        "MYSQL_URL": "mysql://localhost:3306",
+        "MYSQL_USERNAME": "root",
+        "MYSQL_PASSWORD": "root"
+      },
+      "settings-format": "json"
     }
   }
 }
