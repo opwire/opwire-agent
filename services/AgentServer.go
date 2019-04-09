@@ -104,7 +104,7 @@ func NewAgentServer(o AgentServerOptions) (s *AgentServer, err error) {
 		return nil, utils.CombineErrors("The configuration is invalid. Errors:", errs)
 	}
 	if conf == nil {
-		conf = &config.Configuration{}
+		return nil, fmt.Errorf("The configuration must not be nil")
 	}
 
 	// register main & sub-resources

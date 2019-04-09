@@ -17,6 +17,7 @@ type Configuration struct {
 	Settings map[string]interface{} `json:"settings"`
 	SettingsFormat *string `json:"settings-format"`
 	HttpServer *configHttpServer `json:"http-server"`
+	managerOptions ManagerOptions
 }
 
 type Manager struct {
@@ -42,10 +43,23 @@ func NewManager(options ManagerOptions) (*Manager) {
 
 func (m *Manager) Load() (cfg *Configuration, result ValidationResult, err error) {
 	cfg, err = m.loadJson()
-	if cfg == nil || err != nil {
+	if err != nil {
 		return nil, nil, err
 	}
-	result, err = m.validator.Validate(cfg)
+	if cfg != nil {
+		result, err = m.validator.Validate(cfg)
+	} else {
+		v := "0.0.0"
+		if m.options != nil {
+			v = m.options.GetVersion()
+		}
+		cfg = &Configuration{
+			Version: v,
+		}
+	}
+
+	cfg.managerOptions = m.options
+
 	return cfg, result, err
 }
 
@@ -53,7 +67,7 @@ func (m *Manager) loadJson() (*Configuration, error) {
 	fs := storages.GetFs()
 	cfgpath, from := m.locator.GetConfigPath(m.options.GetConfigPath())
 	if len(from) == 0 {
-		log.Printf("Configuration file not found")
+		log.Printf("Configuration file not found, use default configuration.")
 		return nil, nil
 	} else {
 		log.Printf("Configuration path [%s] from [%s]", cfgpath, from)
@@ -71,10 +85,6 @@ func (m *Manager) loadJson() (*Configuration, error) {
 	err = parser.Decode(config)
 	if err != nil {
 		return nil, err
-	}
-
-	if config.HttpServer != nil {
-		config.HttpServer.managerOptions = m.options
 	}
 
 	return config, nil
@@ -142,10 +152,14 @@ type configHttpServer struct {
 }
 
 func (c *Configuration) GetHttpServer() *configHttpServer {
-	if c.HttpServer == nil {
-		return &configHttpServer{}
+	httpServer := c.HttpServer
+	if httpServer == nil {
+		httpServer = &configHttpServer{}
 	}
-	return c.HttpServer
+	if httpServer.managerOptions == nil {
+		httpServer.managerOptions = c.managerOptions
+	}
+	return httpServer
 }
 
 func (c *configHttpServer) GetHost() string {
