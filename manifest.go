@@ -4,8 +4,6 @@ import (
 	"fmt"
 )
 
-const artifactId string = "opwire-agent"
-
 var (
 	gitCommit string
 	gitTag string
@@ -25,7 +23,7 @@ func (m *Manifest) GetVersion() string {
 
 func (m *Manifest) String() (string, bool) {
 	ok := false
-	s := artifactId + " |"
+	s := ""
 
 	position := gitTag
 	if len(position) == 0 {

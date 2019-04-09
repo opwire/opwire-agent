@@ -13,6 +13,10 @@ type AgentCommander struct {
 }
 
 func NewAgentCommander(manifest AgentManifest) (*AgentCommander, error) {
+	if manifest == nil {
+		return nil, fmt.Errorf("Manifest must not be nil")
+	}
+
 	c := new(AgentCommander)
 
 	clp.HelpFlag = clp.BoolFlag{
@@ -20,6 +24,9 @@ func NewAgentCommander(manifest AgentManifest) (*AgentCommander, error) {
 	}
 	clp.VersionFlag = clp.BoolFlag{
 		Name: "version",
+	}
+	if info, ok := manifest.String(); ok {
+		clp.AppHelpTemplate = fmt.Sprintf("%s\nNOTES:\n   %s\n\n", clp.AppHelpTemplate, info)
 	}
 
 	app := clp.NewApp()
@@ -55,9 +62,6 @@ func NewAgentCommander(manifest AgentManifest) (*AgentCommander, error) {
 				},
 			},
 			Action: func(c *clp.Context) error {
-				if info, ok := manifest.String(); ok {
-					Println(info)
-				}
 				f := new(AgentCmdFlags)
 				f.ConfigPath = c.String("config-path")
 				f.DirectCommand = c.String("direct-command")
