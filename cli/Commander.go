@@ -30,7 +30,7 @@ func NewAgentCommander(manifest AgentManifest) (*AgentCommander, error) {
 	app.Commands = []clp.Command {
 		{
 			Name: "serve",
-			Aliases: []string{"s"},
+			Aliases: []string{"start"},
 			Usage: "start the service",
 			Flags: []clp.Flag{
 				clp.StringFlag{
@@ -68,6 +68,9 @@ func NewAgentCommander(manifest AgentManifest) (*AgentCommander, error) {
 				_, err := services.NewAgentServer(f)
 				return err
 			},
+		},
+		{
+			Name: "help",
 		},
 	}
 	c.app = app
