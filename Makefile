@@ -59,7 +59,7 @@ TARGET_OS_ARCH= \
 endif
 
 build-dev:
-	go build -ldflags "${GO_LDFLAGS}" -ldflags="-s -w"
+	go build -ldflags "${GO_LDFLAGS}"
 
 build-lab:
 ifneq ($(filter 1,$(FORCE_BUILD) $(OK_FOR_TEST)),)
@@ -76,7 +76,7 @@ build-all: build-clean build-mkdir
 		GOARCH=$${OS_ARCH[1]}; \
 		ARTIFACT_NAME=opwire-agent-${LATEST_TAG}-$$GOOS-$$GOARCH; \
 		[[ "$$GOOS" = "windows" ]] && BIN_EXT=".exe" || BIN_EXT=""; \
-		env GOOS=$$GOOS GOARCH=$$GOARCH go build -o ./build/$$ARTIFACT_NAME/opwire-agent$$BIN_EXT -ldflags "${GO_LDFLAGS}" && \
+		env GOOS=$$GOOS GOARCH=$$GOARCH go build -o ./build/$$ARTIFACT_NAME/opwire-agent$$BIN_EXT -ldflags "${GO_LDFLAGS} -s -w" && \
 		zip -rjm ./build/$$ARTIFACT_NAME.zip ./build/$$ARTIFACT_NAME/ && \
 		rmdir ./build/$$ARTIFACT_NAME/; \
 	done

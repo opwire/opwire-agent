@@ -118,11 +118,7 @@ func NewAgentServer(o AgentServerOptions) (s *AgentServer, err error) {
 	}
 
 	// create a weighted semaphore
-	var reqRestrictorOpts ReqRestrictorOptions
-	if conf.HttpServer != nil {
-		reqRestrictorOpts = conf.HttpServer
-	}
-	s.reqRestrictor, err = NewReqRestrictor(reqRestrictorOpts)
+	s.reqRestrictor, err = NewReqRestrictor(conf.GetHttpServer())
 
 	if err != nil {
 		return nil, err
@@ -159,26 +155,20 @@ func NewAgentServer(o AgentServerOptions) (s *AgentServer, err error) {
 	s.httpOptions = new(httpServerOptions)
 	s.httpOptions.Addr = buildHttpAddr(conf)
 	s.httpOptions.MaxHeaderBytes = 1 << 22 // new default: 4MB
-	httpConf := conf.HttpServer
-	if httpConf != nil {
-		if maxbytes := httpConf.GetMaxHeaderBytes(); maxbytes > 0 {
-			s.httpOptions.MaxHeaderBytes = maxbytes
-		}
-		if timeout, err := httpConf.GetReadTimeout(); timeout > 0 && err == nil {
-			s.httpOptions.ReadTimeout = timeout
-		}
-		if timeout, err := httpConf.GetWriteTimeout(); timeout > 0 && err == nil {
-			s.httpOptions.WriteTimeout = timeout
-		}
+	httpConf := conf.GetHttpServer()
+	if maxbytes := httpConf.GetMaxHeaderBytes(); maxbytes > 0 {
+		s.httpOptions.MaxHeaderBytes = maxbytes
+	}
+	if timeout, err := httpConf.GetReadTimeout(); timeout > 0 && err == nil {
+		s.httpOptions.ReadTimeout = timeout
+	}
+	if timeout, err := httpConf.GetWriteTimeout(); timeout > 0 && err == nil {
+		s.httpOptions.WriteTimeout = timeout
 	}
 
 	// other configurations
-	if conf.Agent != nil {
-		s.explanationEnabled = conf.Agent.GetExplanationEnabled()
-	}
-	if conf.Agent != nil {
-		s.outputCombined = conf.Agent.GetOutputCombined()
-	}
+	s.explanationEnabled = conf.GetAgent().GetExplanationEnabled()
+	s.outputCombined = conf.GetAgent().GetOutputCombined()
 
 	// starts the server by default
 	if !s.options.SuppressAutoStart() {

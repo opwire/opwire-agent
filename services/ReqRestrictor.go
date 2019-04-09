@@ -67,9 +67,6 @@ func NewReqRestrictor(opts ReqRestrictorOptions) (*ReqRestrictor, error) {
 	if opts != nil {
 		sfEnabled = opts.SingleFlightEnabled()
 	}
-	if sfEnabled {
-		rr.flightGroup = new(singleflight.Group)
-	}
 
 	// create the singleflight pattern
 	sfp := &SingleFlightPattern{}
@@ -83,6 +80,7 @@ func NewReqRestrictor(opts ReqRestrictorOptions) (*ReqRestrictor, error) {
 		sfp.HasUserIP = opts.SingleFlightByUserIP()
 	}
 	if sfEnabled {
+		rr.flightGroup = new(singleflight.Group)
 		rr.flightPattern = sfp
 	}
 
