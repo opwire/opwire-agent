@@ -51,13 +51,13 @@ var configurationSchema string = `{
 				{
 					"type": "object",
 					"properties": {
-						"explanation-enabled": {
+						"explanation": {
 							"oneOf": [
 								{
 									"type": "null"
 								},
 								{
-									"type": "boolean"
+									"$ref": "#/definitions/SectionExplanation"
 								}
 							]
 						},
@@ -359,6 +359,32 @@ var configurationSchema string = `{
 						},
 						{
 							"type": "boolean"
+						}
+					]
+				}
+			},
+			"additionalProperties": false
+		},
+		"SectionExplanation": {
+			"type": "object",
+			"properties": {
+				"enabled": {
+					"oneOf": [
+						{
+							"type": "null"
+						},
+						{
+							"type": "boolean"
+						}
+					]
+				},
+				"format": {
+					"oneOf": [
+						{
+							"type": "null"
+						},
+						{
+							"type": "string"
 						}
 					]
 				}

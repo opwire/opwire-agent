@@ -3,50 +3,50 @@ package shellio
 import (
 	"fmt"
 	"os"
-	"github.com/urfave/cli"
+	clp "github.com/urfave/cli"
 	"github.com/opwire/opwire-agent/services"
 )
 
 type AgentCommander struct {
-	app *cli.App
+	app *clp.App
 }
 
 func NewAgentCommander(manifest AgentManifest) (*AgentCommander, error) {
 	c := new(AgentCommander)
 
-	app := cli.NewApp()
+	app := clp.NewApp()
 	app.Name = "opwire-agent"
 	app.Usage = "Bring your command line programs to Rest API"
 	app.Version = manifest.GetVersion()
 
-	app.Commands = []cli.Command {
+	app.Commands = []clp.Command {
 		{
 			Name: "serve",
 			Aliases: []string{"s"},
 			Usage: "start the service",
-			Flags: []cli.Flag{
-				cli.StringFlag{
+			Flags: []clp.Flag{
+				clp.StringFlag{
 					Name: "config, c",
 					Usage: "Explicit configuration file",
 				},
-				cli.StringFlag{
+				clp.StringFlag{
 					Name: "direct-command, default-command, d",
 					Usage: "The command string that will be executed directly",
 				},
-				cli.StringFlag{
+				clp.StringFlag{
 					Name: "host, bind, b",
 					Usage: "Agent http server host",
 				},
-				cli.UintFlag{
+				clp.UintFlag{
 					Name: "port, p",
 					Usage: "Agent http server port",
 				},
-				cli.StringSliceFlag{
+				clp.StringSliceFlag{
 					Name: "static-path, s",
 					Usage: "Path of static web resources",
 				},
 			},
-			Action: func(c *cli.Context) error {
+			Action: func(c *clp.Context) error {
 				if info, ok := manifest.String(); ok {
 					Println(info)
 				}

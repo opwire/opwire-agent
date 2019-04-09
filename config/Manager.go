@@ -19,23 +19,6 @@ type Configuration struct {
 	HttpServer *ConfigHttpServer `json:"http-server"`
 }
 
-type ConfigAgent struct {
-	ExplanationEnabled *bool `json:"explanation-enabled"`
-	OutputCombined *bool `json:"combine-stderr-stdout"` // 2>&1
-}
-
-type ConfigHttpServer struct {
-	managerOptions ManagerOptions
-	Host *string `json:"host"`
-	Port *uint `json:"port"`
-	MaxHeaderBytes *int `json:"max-header-bytes"`
-	ReadTimeout *string `json:"read-timeout"`
-	WriteTimeout *string `json:"write-timeout"`
-	BaseUrl *string `json:"baseurl"`
-	ConcurrentLimit *SectionConcurrentLimit `json:"concurrent-limit"`
-	SingleFlight *SectionSingleFlight `json:"single-flight"`
-}
-
 type Manager struct {
 	locator *Locator
 	validator *Validator
@@ -95,6 +78,74 @@ func (m *Manager) loadJson() (*Configuration, error) {
 	}
 
 	return config, nil
+}
+
+type ConfigAgent struct {
+	Explanation *SectionExplanation `json:"explanation"`
+	OutputCombined *bool `json:"combine-stderr-stdout"` // 2>&1
+}
+
+func (c *Configuration) GetAgent() *ConfigAgent {
+	if c.Agent == nil {
+		return &ConfigAgent{}
+	}
+	return c.Agent
+}
+
+func (c *ConfigAgent) GetExplanation() *SectionExplanation {
+	if c.Explanation == nil {
+		return &SectionExplanation{}
+	}
+	return c.Explanation
+}
+
+func (c *ConfigAgent) GetExplanationEnabled() bool {
+	return c.GetExplanation().GetEnabled()
+}
+
+func (c *ConfigAgent) GetOutputCombined() bool {
+	if c.OutputCombined == nil {
+		return false
+	}
+	return *c.OutputCombined
+}
+
+type SectionExplanation struct {
+	Enabled *bool `json:"enabled"`
+	Format *string `json:"format"`
+}
+
+func (c *SectionExplanation) GetEnabled() bool {
+	if c.Enabled == nil {
+		return false
+	}
+	return *c.Enabled
+}
+
+func (c *SectionExplanation) GetFormat() string {
+	if c.Format == nil {
+		return ""
+	}
+	return *c.Format
+}
+
+type ConfigHttpServer struct {
+	managerOptions ManagerOptions
+	Host *string `json:"host"`
+	Port *uint `json:"port"`
+	MaxHeaderBytes *int `json:"max-header-bytes"`
+	ReadTimeout *string `json:"read-timeout"`
+	WriteTimeout *string `json:"write-timeout"`
+	BaseUrl *string `json:"baseurl"`
+	ConcurrentLimit *SectionConcurrentLimit `json:"concurrent-limit"`
+	SingleFlight *SectionSingleFlight `json:"single-flight"`
+}
+
+func (c *Configuration) GetHttpServer() *ConfigHttpServer {
+	if c.HttpServer == nil {
+		return &ConfigHttpServer{}
+	}
+	return c.HttpServer
 }
 
 func (c *ConfigHttpServer) GetHost() string {

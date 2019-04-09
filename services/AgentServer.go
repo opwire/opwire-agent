@@ -173,11 +173,11 @@ func NewAgentServer(o AgentServerOptions) (s *AgentServer, err error) {
 	}
 
 	// other configurations
-	if conf.Agent != nil && conf.Agent.ExplanationEnabled != nil {
-		s.explanationEnabled = *conf.Agent.ExplanationEnabled
+	if conf.Agent != nil {
+		s.explanationEnabled = conf.Agent.GetExplanationEnabled()
 	}
-	if conf.Agent != nil && conf.Agent.OutputCombined != nil {
-		s.outputCombined = *conf.Agent.OutputCombined
+	if conf.Agent != nil {
+		s.outputCombined = conf.Agent.GetOutputCombined()
 	}
 
 	// starts the server by default
