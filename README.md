@@ -105,32 +105,33 @@ Example:
   },
   "resources": {
     "products": {
+      "pattern": "/api/v1/products",
       "default": {
-        "pattern": "/products",
         "command": "node product.js --action=list",
         "timeout": 5
       }
     },
+    "product-create": {
+      "pattern": "/api/v1/product",
+      "methods": {
+        "POST": {
+          "command": "node product.js --action=create"
+        }
+      }
+    },
     "product": {
+      "pattern": "/api/v1/product/{productId}",
       "methods": {
         "GET": {
-          "pattern": "/product/{productId}",
           "command": "node product.js --action=details"
         },
-        "POST": {
-          "pattern": "/product",
-          "command": "node product.js --action=create"
-        },
         "PUT": {
-          "pattern": "/product/{productId}",
           "command": "node product.js --action=update"
         },
         "PATCH": {
-          "pattern": "/product/{productId}",
           "command": "node product.js --action=change"
         },
         "DELETE": {
-          "pattern": "/product/{productId}",
           "command": "node product.js --action=remove"
         }
       },
