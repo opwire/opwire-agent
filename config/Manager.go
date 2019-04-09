@@ -16,7 +16,7 @@ type Configuration struct {
 	Resources map[string]invokers.CommandEntrypoint `json:"resources"`
 	Settings map[string]interface{} `json:"settings"`
 	SettingsFormat *string `json:"settings-format"`
-	HttpServer *ConfigHttpServer `json:"http-server"`
+	HttpServer *configHttpServer `json:"http-server"`
 }
 
 type Manager struct {
@@ -129,7 +129,7 @@ func (c *SectionExplanation) GetFormat() string {
 	return *c.Format
 }
 
-type ConfigHttpServer struct {
+type configHttpServer struct {
 	managerOptions ManagerOptions
 	Host *string `json:"host"`
 	Port *uint `json:"port"`
@@ -141,14 +141,14 @@ type ConfigHttpServer struct {
 	SingleFlight *SectionSingleFlight `json:"single-flight"`
 }
 
-func (c *Configuration) GetHttpServer() *ConfigHttpServer {
+func (c *Configuration) GetHttpServer() *configHttpServer {
 	if c.HttpServer == nil {
-		return &ConfigHttpServer{}
+		return &configHttpServer{}
 	}
 	return c.HttpServer
 }
 
-func (c *ConfigHttpServer) GetHost() string {
+func (c *configHttpServer) GetHost() string {
 	o := c.managerOptions
 	if o != nil && o.GetHost() != "" {
 		return o.GetHost()
@@ -159,7 +159,7 @@ func (c *ConfigHttpServer) GetHost() string {
 	return ""
 }
 
-func (c *ConfigHttpServer) GetPort() uint {
+func (c *configHttpServer) GetPort() uint {
 	o := c.managerOptions
 	if o != nil && o.GetPort() != 0 {
 		return o.GetPort()
@@ -170,75 +170,75 @@ func (c *ConfigHttpServer) GetPort() uint {
 	return 0
 }
 
-func (c *ConfigHttpServer) GetBaseUrl() string {
+func (c *configHttpServer) GetBaseUrl() string {
 	if c.BaseUrl != nil {
 		return *c.BaseUrl
 	}
 	return ""
 }
 
-func (c *ConfigHttpServer) GetMaxHeaderBytes() int {
+func (c *configHttpServer) GetMaxHeaderBytes() int {
 	if c.MaxHeaderBytes != nil {
 		return *c.MaxHeaderBytes
 	}
 	return 0
 }
 
-func (c *ConfigHttpServer) GetReadTimeout() (time.Duration, error) {
+func (c *configHttpServer) GetReadTimeout() (time.Duration, error) {
 	if c.ReadTimeout != nil {
 		return time.ParseDuration(*c.ReadTimeout)
 	}
 	return 0, nil
 }
 
-func (c *ConfigHttpServer) GetWriteTimeout() (time.Duration, error) {
+func (c *configHttpServer) GetWriteTimeout() (time.Duration, error) {
 	if c.WriteTimeout != nil {
 		return time.ParseDuration(*c.WriteTimeout)
 	}
 	return 0, nil
 }
 
-func (c *ConfigHttpServer) ConcurrentLimitEnabled() bool {
+func (c *configHttpServer) ConcurrentLimitEnabled() bool {
 	return c.GetConcurrentLimit().GetEnabled()
 }
 
-func (c *ConfigHttpServer) ConcurrentLimitTotal() int {
+func (c *configHttpServer) ConcurrentLimitTotal() int {
 	return c.GetConcurrentLimit().GetTotal()
 }
 
-func (c *ConfigHttpServer) SingleFlightEnabled() bool {
+func (c *configHttpServer) SingleFlightEnabled() bool {
 	return c.GetSingleFlight().GetEnabled()
 }
 
-func (c *ConfigHttpServer) SingleFlightReqIdName() string {
+func (c *configHttpServer) SingleFlightReqIdName() string {
 	return c.GetSingleFlight().GetReqIdName()
 }
 
-func (c *ConfigHttpServer) SingleFlightByMethod() bool {
+func (c *configHttpServer) SingleFlightByMethod() bool {
 	return c.GetSingleFlight().GetByMethod()
 }
 
-func (c *ConfigHttpServer) SingleFlightByPath() bool {
+func (c *configHttpServer) SingleFlightByPath() bool {
 	return c.GetSingleFlight().GetByPath()
 }
 
-func (c *ConfigHttpServer) SingleFlightByHeaders() []string {
+func (c *configHttpServer) SingleFlightByHeaders() []string {
 	return c.GetSingleFlight().GetByHeaders()
 }
 
-func (c *ConfigHttpServer) SingleFlightByQueries() []string {
+func (c *configHttpServer) SingleFlightByQueries() []string {
 	return c.GetSingleFlight().GetByQueries()
 }
 
-func (c *ConfigHttpServer) SingleFlightByBody() bool {
+func (c *configHttpServer) SingleFlightByBody() bool {
 	return c.GetSingleFlight().GetByBody()
 }
 
-func (c *ConfigHttpServer) SingleFlightByUserIP() bool {
+func (c *configHttpServer) SingleFlightByUserIP() bool {
 	return c.GetSingleFlight().GetByUserIP()
 }
 
-func (c *ConfigHttpServer) GetConcurrentLimit() *SectionConcurrentLimit {
+func (c *configHttpServer) GetConcurrentLimit() *SectionConcurrentLimit {
 	if c.ConcurrentLimit == nil {
 		return &SectionConcurrentLimit{}
 	}
@@ -264,7 +264,7 @@ func (c *SectionConcurrentLimit) GetTotal() int {
 	return *c.Total
 }
 
-func (c *ConfigHttpServer) GetSingleFlight() *SectionSingleFlight {
+func (c *configHttpServer) GetSingleFlight() *SectionSingleFlight {
 	if c.SingleFlight == nil {
 		return &SectionSingleFlight{}
 	}
