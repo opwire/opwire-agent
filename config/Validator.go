@@ -268,7 +268,7 @@ var configurationSchema string = `{
 							"type": "null"
 						},
 						{
-							"$ref": "#/definitions/SectionConcurrentLimit"
+							"$ref": "#/definitions/sectionConcurrentLimit"
 						}
 					]
 				},
@@ -278,7 +278,7 @@ var configurationSchema string = `{
 							"type": "null"
 						},
 						{
-							"$ref": "#/definitions/SectionSingleFlight"
+							"$ref": "#/definitions/sectionSingleFlight"
 						}
 					]
 				},
@@ -391,7 +391,7 @@ var configurationSchema string = `{
 			},
 			"additionalProperties": false
 		},
-		"SectionConcurrentLimit": {
+		"sectionConcurrentLimit": {
 			"type": "object",
 			"properties": {
 				"enabled": {
@@ -418,7 +418,7 @@ var configurationSchema string = `{
 			},
 			"additionalProperties": false
 		},
-		"SectionSingleFlight": {
+		"sectionSingleFlight": {
 			"type": "object",
 			"properties": {
 				"enabled": {

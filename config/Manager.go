@@ -137,8 +137,8 @@ type configHttpServer struct {
 	ReadTimeout *string `json:"read-timeout"`
 	WriteTimeout *string `json:"write-timeout"`
 	BaseUrl *string `json:"baseurl"`
-	ConcurrentLimit *SectionConcurrentLimit `json:"concurrent-limit"`
-	SingleFlight *SectionSingleFlight `json:"single-flight"`
+	ConcurrentLimit *sectionConcurrentLimit `json:"concurrent-limit"`
+	SingleFlight *sectionSingleFlight `json:"single-flight"`
 }
 
 func (c *Configuration) GetHttpServer() *configHttpServer {
@@ -238,40 +238,40 @@ func (c *configHttpServer) SingleFlightByUserIP() bool {
 	return c.GetSingleFlight().GetByUserIP()
 }
 
-func (c *configHttpServer) GetConcurrentLimit() *SectionConcurrentLimit {
+func (c *configHttpServer) GetConcurrentLimit() *sectionConcurrentLimit {
 	if c.ConcurrentLimit == nil {
-		return &SectionConcurrentLimit{}
+		return &sectionConcurrentLimit{}
 	}
 	return c.ConcurrentLimit
 }
 
-type SectionConcurrentLimit struct {
+type sectionConcurrentLimit struct {
 	Enabled *bool `json:"enabled"`
 	Total *int `json:"total"`
 }
 
-func (c *SectionConcurrentLimit) GetEnabled() bool {
+func (c *sectionConcurrentLimit) GetEnabled() bool {
 	if c.Enabled == nil {
 		return false
 	}
 	return *c.Enabled
 }
 
-func (c *SectionConcurrentLimit) GetTotal() int {
+func (c *sectionConcurrentLimit) GetTotal() int {
 	if c.Total == nil {
 		return 0
 	}
 	return *c.Total
 }
 
-func (c *configHttpServer) GetSingleFlight() *SectionSingleFlight {
+func (c *configHttpServer) GetSingleFlight() *sectionSingleFlight {
 	if c.SingleFlight == nil {
-		return &SectionSingleFlight{}
+		return &sectionSingleFlight{}
 	}
 	return c.SingleFlight
 }
 
-type SectionSingleFlight struct {
+type sectionSingleFlight struct {
 	Enabled *bool `json:"enabled"`
 	ReqIdName *string `json:"req-id"`
 	ByMethod *bool `json:"by-method"`
@@ -282,21 +282,21 @@ type SectionSingleFlight struct {
 	ByUserIP *bool `json:"by-userip"`
 }
 
-func (c *SectionSingleFlight) GetEnabled() bool {
+func (c *sectionSingleFlight) GetEnabled() bool {
 	if c.Enabled == nil {
 		return false
 	}
 	return *c.Enabled
 }
 
-func (c *SectionSingleFlight) GetReqIdName() string {
+func (c *sectionSingleFlight) GetReqIdName() string {
 	if c.ReqIdName == nil {
 		return ""
 	}
 	return *c.ReqIdName
 }
 
-func (c *SectionSingleFlight) GetByMethod() bool {
+func (c *sectionSingleFlight) GetByMethod() bool {
 	if c.ByMethod == nil {
 		if c.ReqIdName != nil && len(*c.ReqIdName) > 0 {
 			return false
@@ -312,7 +312,7 @@ func (c *SectionSingleFlight) GetByMethod() bool {
 	return *c.ByMethod
 }
 
-func (c *SectionSingleFlight) GetByPath() bool {
+func (c *sectionSingleFlight) GetByPath() bool {
 	if c.ByPath == nil {
 		if c.ReqIdName != nil && len(*c.ReqIdName) > 0 {
 			return false
@@ -328,28 +328,28 @@ func (c *SectionSingleFlight) GetByPath() bool {
 	return *c.ByPath
 }
 
-func (c *SectionSingleFlight) GetByHeaders() []string {
+func (c *sectionSingleFlight) GetByHeaders() []string {
 	if c.ByHeaders == nil {
 		return []string{}
 	}
 	return utils.Split(*c.ByHeaders, ",")
 }
 
-func (c *SectionSingleFlight) GetByQueries() []string {
+func (c *sectionSingleFlight) GetByQueries() []string {
 	if c.ByQueries == nil {
 		return []string{}
 	}
 	return utils.Split(*c.ByQueries, ",")
 }
 
-func (c *SectionSingleFlight) GetByBody() bool {
+func (c *sectionSingleFlight) GetByBody() bool {
 	if c.ByBody == nil {
 		return false
 	}
 	return *c.ByBody
 }
 
-func (c *SectionSingleFlight) GetByUserIP() bool {
+func (c *sectionSingleFlight) GetByUserIP() bool {
 	if c.ByUserIP == nil {
 		if c.ReqIdName != nil && len(*c.ReqIdName) > 0 {
 			return false
