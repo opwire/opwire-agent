@@ -22,11 +22,14 @@ func NewAgentCommander(manifest AgentManifest) (*AgentCommander, error) {
 	clp.HelpFlag = clp.BoolFlag{
 		Name: "help",
 	}
+	if info, ok := manifest.String(); ok {
+		clp.AppHelpTemplate = fmt.Sprintf("%s\nNOTES:\n   %s\n\n", clp.AppHelpTemplate, info)
+	}
 	clp.VersionFlag = clp.BoolFlag{
 		Name: "version",
 	}
-	if info, ok := manifest.String(); ok {
-		clp.AppHelpTemplate = fmt.Sprintf("%s\nNOTES:\n   %s\n\n", clp.AppHelpTemplate, info)
+	clp.VersionPrinter = func(c *clp.Context) {
+		fmt.Fprintf(c.App.Writer, "%s\n", c.App.Version)
 	}
 
 	app := clp.NewApp()
@@ -38,10 +41,10 @@ func NewAgentCommander(manifest AgentManifest) (*AgentCommander, error) {
 		{
 			Name: "serve",
 			Aliases: []string{"start"},
-			Usage: "start the service",
+			Usage: "Start the service",
 			Flags: []clp.Flag{
 				clp.StringFlag{
-					Name: "config, c",
+					Name: "config-path, config, c",
 					Usage: "Explicit configuration file",
 				},
 				clp.StringFlag{
