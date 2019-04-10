@@ -11,6 +11,7 @@ import (
 
 type TextFormatter struct {
 	format string
+	width int
 	printer func (w http.ResponseWriter, label string, data interface{})
 }
 
@@ -21,7 +22,7 @@ func NewTextFormatter(format string) *TextFormatter {
 		f.format = format
 	default:
 		f.format = "free"
-		f.printer = freeStylePrinter
+		f.printer = f.freeStylePrinter
 	}
 	return f
 }
@@ -67,9 +68,13 @@ func (p *TextFormatter) PrintJsonObject(w http.ResponseWriter, label string, has
 	return nil
 }
 
-func freeStylePrinter(w http.ResponseWriter, label string, data interface{}) {
-	header := utils.PadString("[" + label, utils.LEFT, 80, "-")
-	footer := utils.PadString(label + "]", utils.RIGHT, 80, "-")
+func (p *TextFormatter) freeStylePrinter(w http.ResponseWriter, label string, data interface{}) {
+	width := p.width
+	if width == 0 {
+		width = 80
+	}
+	header := utils.PadString("[" + label, utils.LEFT, width, "-")
+	footer := utils.PadString(label + "]", utils.RIGHT, width, "-")
 	if !utils.IsEmpty(data) {
 		io.WriteString(w, fmt.Sprintf("\n%s\n%s\n%s\n", header, data, footer))
 	}
