@@ -126,7 +126,7 @@ func NewAgentServer(o AgentServerOptions) (s *AgentServer, err error) {
 	}
 
 	// create a response formatter
-	s.textFormatter = NewTextFormatter(conf.GetAgent().GetExplanation().GetFormat())
+	s.textFormatter = NewTextFormatter(conf.GetAgent().GetExplanation())
 
 	// defines HTTP request invokers
 	s.httpRouter = mux.NewRouter()

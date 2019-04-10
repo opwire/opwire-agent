@@ -6,19 +6,28 @@ import (
 	"io"
 	"net/http"
 	"strings"
+
 	"github.com/opwire/opwire-agent/utils"
 )
 
 type TextFormatter struct {
-	format string
-	width int
-	printer func (w http.ResponseWriter, label string, data interface{})
+	format  string
+	width   int
+	printer func(w http.ResponseWriter, label string, data interface{})
 }
 
-func NewTextFormatter(format string) *TextFormatter {
+type TextFormatterOptions interface {
+	GetFormat() string
+}
+
+func NewTextFormatter(options TextFormatterOptions) *TextFormatter {
 	f := new(TextFormatter)
-	switch(format) {
-	case "json", "yaml":
+	format := ""
+	if options != nil {
+		format = options.GetFormat()
+	}
+	switch format {
+	case "yaml":
 		f.format = format
 	default:
 		f.format = "free"
@@ -48,7 +57,7 @@ func (p *TextFormatter) PrintJsonString(w http.ResponseWriter, label string, tex
 		if err == nil {
 			return p.PrintJsonObject(w, label, dataMap)
 		} else {
-			p.printer(w, label + " (text)", textData)
+			p.printer(w, label+" (text)", textData)
 		}
 	}
 	return nil
@@ -73,8 +82,8 @@ func (p *TextFormatter) freeStylePrinter(w http.ResponseWriter, label string, da
 	if width == 0 {
 		width = 80
 	}
-	header := utils.PadString("[" + label, utils.LEFT, width, "-")
-	footer := utils.PadString(label + "]", utils.RIGHT, width, "-")
+	header := utils.PadString("["+label, utils.LEFT, width, "-")
+	footer := utils.PadString(label+"]", utils.RIGHT, width, "-")
 	if !utils.IsEmpty(data) {
 		io.WriteString(w, fmt.Sprintf("\n%s\n%s\n%s\n", header, data, footer))
 	}
