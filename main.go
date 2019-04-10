@@ -8,7 +8,7 @@ import (
 func main() {
 	manifest := &Manifest{}
 
-	cmd, err := cli.NewAgentCommander(manifest)
+	cmd, err := cli.NewCommander(manifest)
 	if err != nil {
 		cli.Println("Cannot create Commander, error: %s", err.Error())
 		os.Exit(2)

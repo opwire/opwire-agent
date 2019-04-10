@@ -8,16 +8,16 @@ import (
 	"github.com/opwire/opwire-agent/utils"
 )
 
-type AgentCommander struct {
+type Commander struct {
 	app *clp.App
 }
 
-func NewAgentCommander(manifest AgentManifest) (*AgentCommander, error) {
+func NewCommander(manifest Manifest) (*Commander, error) {
 	if manifest == nil {
 		return nil, fmt.Errorf("Manifest must not be nil")
 	}
 
-	c := new(AgentCommander)
+	c := new(Commander)
 
 	clp.HelpFlag = clp.BoolFlag{
 		Name: "help",
@@ -65,7 +65,7 @@ func NewAgentCommander(manifest AgentManifest) (*AgentCommander, error) {
 				},
 			},
 			Action: func(c *clp.Context) error {
-				f := new(AgentCmdFlags)
+				f := new(CmdFlags)
 				f.ConfigPath = c.String("config-path")
 				f.DirectCommand = c.String("direct-command")
 				f.Host = c.String("host")
@@ -78,66 +78,67 @@ func NewAgentCommander(manifest AgentManifest) (*AgentCommander, error) {
 		},
 		{
 			Name: "help",
+			Usage: "Shows a list of commands or help for one command",
 		},
 	}
 	c.app = app
 	return c, nil
 }
 
-func (c *AgentCommander) Run() error {
+func (c *Commander) Run() error {
 	if c.app == nil {
 		return fmt.Errorf("Agent commander has not initialized properly")
 	}
 	return c.app.Run(os.Args)
 }
 
-type AgentManifest interface {
+type Manifest interface {
 	GetRevision() string
 	GetVersion() string
 	String() (string, bool)
 }
 
-type AgentCmdFlags struct {
+type CmdFlags struct {
 	ConfigPath string
 	Host string
 	Port uint
 	DirectCommand string
 	StaticPath []string
-	manifest AgentManifest
+	manifest Manifest
 }
 
-func (a *AgentCmdFlags) GetConfigPath() string {
+func (a *CmdFlags) GetConfigPath() string {
 	return a.ConfigPath
 }
 
-func (a *AgentCmdFlags) GetDirectCommand() string {
+func (a *CmdFlags) GetDirectCommand() string {
 	return a.DirectCommand
 }
 
-func (a *AgentCmdFlags) GetHost() string {
+func (a *CmdFlags) GetHost() string {
 	return a.Host
 }
 
-func (a *AgentCmdFlags) GetPort() uint {
+func (a *CmdFlags) GetPort() uint {
 	return a.Port
 }
 
-func (a *AgentCmdFlags) GetStaticPath() map[string]string {
+func (a *CmdFlags) GetStaticPath() map[string]string {
 	return utils.ParseDirMappings(a.StaticPath)
 }
 
-func (a *AgentCmdFlags) SuppressAutoStart() bool {
+func (a *CmdFlags) SuppressAutoStart() bool {
 	return false
 }
 
-func (a *AgentCmdFlags) GetRevision() string {
+func (a *CmdFlags) GetRevision() string {
 	if a.manifest == nil {
 		return ""
 	}
 	return a.manifest.GetRevision()
 }
 
-func (a *AgentCmdFlags) GetVersion() string {
+func (a *CmdFlags) GetVersion() string {
 	if a.manifest == nil {
 		return ""
 	}
