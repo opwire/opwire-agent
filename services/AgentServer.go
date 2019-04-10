@@ -47,6 +47,7 @@ type AgentServer struct {
 	httpOptions *httpServerOptions
 	reqRestrictor *ReqRestrictor
 	reqSerializer *ReqSerializer
+	textFormatter *TextFormatter
 	stateStore *StateStore
 	executor CommandExecutor
 	options AgentServerOptions
@@ -124,6 +125,9 @@ func NewAgentServer(o AgentServerOptions) (s *AgentServer, err error) {
 		return nil, err
 	}
 
+	// create a response formatter
+	s.textFormatter = NewTextFormatter(conf.GetAgent().GetExplanation().GetFormat())
+
 	// defines HTTP request invokers
 	s.httpRouter = mux.NewRouter()
 	s.httpRouter.HandleFunc(CTRL_BASEURL + `/health`, s.makeHealthCheckHandler())
@@ -167,7 +171,7 @@ func NewAgentServer(o AgentServerOptions) (s *AgentServer, err error) {
 	}
 
 	// other configurations
-	s.explanationEnabled = conf.GetAgent().GetExplanationEnabled()
+	s.explanationEnabled = conf.GetAgent().GetExplanation().GetEnabled()
 	s.outputCombined = conf.GetAgent().GetOutputCombined()
 
 	// starts the server by default
@@ -567,13 +571,13 @@ func (s *AgentServer) explainRequest(w http.ResponseWriter, ib *bytes.Buffer, ci
 	// display agent's release information
 	edition, p1 := utils.FirstHasPrefix(ci.Envs, OPWIRE_EDITION_PREFIX_PLUS, true)
 	if p1 >= 0 {
-		printJsonString(w, "edition", edition)
+		s.textFormatter.PrintJsonString(w, "edition", edition)
 	}
 
 	// display the request parameters
 	reqText, p2 := utils.FirstHasPrefix(ci.Envs, OPWIRE_REQUEST_PREFIX_PLUS, true)
 	if p2 >= 0 {
-		printJsonString(w, "request", reqText)
+		s.textFormatter.PrintJsonString(w, "request", reqText)
 	}
 
 	// display the resource, method and command
@@ -605,9 +609,9 @@ func (s *AgentServer) explainRequest(w http.ResponseWriter, ib *bytes.Buffer, ci
 		}
 		commandInfo["resolved"] = resolvedInfo
 
-		printJsonObject(w, "command", commandInfo)
+		s.textFormatter.PrintJsonObject(w, "command", commandInfo)
 	} else {
-		printSection(w, "command", fmt.Sprintf(`direct-command: "%s"`, ci.DirectCommand))
+		s.textFormatter.PrintTextgraph(w, "command", fmt.Sprintf(`direct-command: "%s"`, ci.DirectCommand))
 	}
 
 	// display the settings
@@ -615,74 +619,29 @@ func (s *AgentServer) explainRequest(w http.ResponseWriter, ib *bytes.Buffer, ci
 		settingsEnvs := s.executor.GetSettings(*resourceRef)
 		settingsText, p3 := utils.FirstHasPrefix(settingsEnvs, OPWIRE_SETTINGS_PREFIX_PLUS, true)
 		if p3 >= 0 {
-			printJsonString(w, "settings", settingsText)
+			s.textFormatter.PrintJsonString(w, "settings", settingsText)
 		} else {
-			printCollection(w, "settings", settingsEnvs)
+			s.textFormatter.PrintCollection(w, "settings", settingsEnvs)
 		}
 	}
 
 	// display the input from stdin
-	printSection(w, "stdin", ib.Bytes())
+	s.textFormatter.PrintTextgraph(w, "stdin", ib.Bytes())
 }
 
 func (s *AgentServer) explainResult(w http.ResponseWriter, ib *bytes.Buffer, ci *invokers.CommandInvocation, err error, ob *bytes.Buffer, eb *bytes.Buffer) {
 	s.explainRequest(w, ib, ci)
 
 	if s.outputCombined {
-		printSection(w, "stderr + stdout", ob.Bytes())
+		s.textFormatter.PrintTextgraph(w, "stderr + stdout", ob.Bytes())
 	} else {
-		printSection(w, "stderr", eb.Bytes())
-		printSection(w, "stdout", ob.Bytes())
+		s.textFormatter.PrintTextgraph(w, "stderr", eb.Bytes())
+		s.textFormatter.PrintTextgraph(w, "stdout", ob.Bytes())
 	}
 
 	if err != nil {
-		printSection(w, "error", []byte(err.Error()))
+		s.textFormatter.PrintTextgraph(w, "error", []byte(err.Error()))
 	}
-}
-
-func printSection(w http.ResponseWriter, label string, data interface{}) {
-	header := utils.PadString("[" + label, utils.LEFT, 80, "-")
-	footer := utils.PadString(label + "]", utils.RIGHT, 80, "-")
-	if !utils.IsEmpty(data) {
-		io.WriteString(w, fmt.Sprintf("\n%s\n%s\n%s\n", header, data, footer))
-	}
-}
-
-func printCollection(w http.ResponseWriter, label string, listData []string) {
-	if len(listData) > 0 {
-		lines := utils.Map(listData, func(s string, i int) string {
-			return fmt.Sprintf("%d) %s", (i + 1), s)
-		})
-		section := strings.Join(lines, "\n")
-		printSection(w, label, section)
-	}
-}
-
-func printJsonString(w http.ResponseWriter, label string, textData string) error {
-	if len(textData) > 0 {
-		dataMap := make(map[string]interface{}, 0)
-		err := json.Unmarshal([]byte(textData), &dataMap)
-		if err == nil {
-			return printJsonObject(w, label, dataMap)
-		} else {
-			printSection(w, label + " (text)", textData)
-		}
-	}
-	return nil
-}
-
-func printJsonObject(w http.ResponseWriter, label string, hashData map[string]interface{}) error {
-	if len(hashData) > 0 {
-		dataJson, err := json.MarshalIndent(hashData, "", "  ")
-		if err != nil {
-			return err
-		}
-		if len(dataJson) == 0 {
-			return fmt.Errorf("Marshalling failed, data is empty")
-		}
-		printSection(w, label, dataJson)
-	}
-	return nil
 }
 
 func (s *AgentServer) listenAndServe() (error) {

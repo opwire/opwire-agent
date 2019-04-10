@@ -109,10 +109,6 @@ func (c *configAgent) GetExplanation() *sectionExplanation {
 	return c.Explanation
 }
 
-func (c *configAgent) GetExplanationEnabled() bool {
-	return c.GetExplanation().GetEnabled()
-}
-
 func (c *configAgent) GetOutputCombined() bool {
 	if c.OutputCombined == nil {
 		return false
