@@ -65,7 +65,7 @@ func NewCommander(manifest Manifest) (*Commander, error) {
 				},
 			},
 			Action: func(c *clp.Context) error {
-				f := new(CmdFlags)
+				f := new(CmdServeFlags)
 				f.ConfigPath = c.String("config-path")
 				f.DirectCommand = c.String("direct-command")
 				f.Host = c.String("host")
@@ -98,7 +98,7 @@ type Manifest interface {
 	String() (string, bool)
 }
 
-type CmdFlags struct {
+type CmdServeFlags struct {
 	ConfigPath string
 	Host string
 	Port uint
@@ -107,38 +107,38 @@ type CmdFlags struct {
 	manifest Manifest
 }
 
-func (a *CmdFlags) GetConfigPath() string {
+func (a *CmdServeFlags) GetConfigPath() string {
 	return a.ConfigPath
 }
 
-func (a *CmdFlags) GetDirectCommand() string {
+func (a *CmdServeFlags) GetDirectCommand() string {
 	return a.DirectCommand
 }
 
-func (a *CmdFlags) GetHost() string {
+func (a *CmdServeFlags) GetHost() string {
 	return a.Host
 }
 
-func (a *CmdFlags) GetPort() uint {
+func (a *CmdServeFlags) GetPort() uint {
 	return a.Port
 }
 
-func (a *CmdFlags) GetStaticPath() map[string]string {
+func (a *CmdServeFlags) GetStaticPath() map[string]string {
 	return utils.ParseDirMappings(a.StaticPath)
 }
 
-func (a *CmdFlags) SuppressAutoStart() bool {
+func (a *CmdServeFlags) SuppressAutoStart() bool {
 	return false
 }
 
-func (a *CmdFlags) GetRevision() string {
+func (a *CmdServeFlags) GetRevision() string {
 	if a.manifest == nil {
 		return ""
 	}
 	return a.manifest.GetRevision()
 }
 
-func (a *CmdFlags) GetVersion() string {
+func (a *CmdServeFlags) GetVersion() string {
 	if a.manifest == nil {
 		return ""
 	}

@@ -1,11 +1,14 @@
 package main
 
 import (
+	"log"
 	"os"
 	"github.com/opwire/opwire-agent/cli"
 )
 
 func main() {
+	log.SetFlags(log.Ldate | log.Lmicroseconds | log.LUTC)
+
 	manifest := &Manifest{}
 
 	cmd, err := cli.NewCommander(manifest)
