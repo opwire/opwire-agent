@@ -653,7 +653,6 @@ func (s *AgentServer) listenAndServe() (error) {
 		signal.Notify(sig, SIGLIST...)
 		<-sig
 
-		fmt.Println()
 		log.Printf("SIGTERM/SIGTSTP received. Agent is shutting down ...\n")
 
 		s.Shutdown()
