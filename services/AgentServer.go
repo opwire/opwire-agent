@@ -74,13 +74,6 @@ func NewAgentServer(o AgentServerOptions) (s *AgentServer, err error) {
 	// remember server edition & options
 	s.options = o
 
-	// creates a new command executor
-	s.executor, err = invokers.NewExecutor(&invokers.ExecutorOptions{})
-
-	if err != nil {
-		return nil, err
-	}
-
 	// creates a StateStore instance
 	s.stateStore, err = NewStateStore()
 
@@ -106,6 +99,13 @@ func NewAgentServer(o AgentServerOptions) (s *AgentServer, err error) {
 	}
 	if conf == nil {
 		return nil, fmt.Errorf("The configuration must not be nil")
+	}
+
+	// creates a new command executor
+	s.executor, err = invokers.NewExecutor(&invokers.ExecutorOptions{})
+
+	if err != nil {
+		return nil, err
 	}
 
 	// register main & sub-resources
