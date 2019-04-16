@@ -60,12 +60,13 @@ type PipeChainRunner interface {
 }
 
 func NewExecutor(opts *ExecutorOptions) (*Executor, error) {
-	if opts == nil {
-		opts = &ExecutorOptions{}
+	var defaultCommand *CommandDescriptor
+	if opts != nil {
+		defaultCommand = opts.DefaultCommand
 	}
 	e := &Executor{}
-	if opts.DefaultCommand != nil {
-		if err := e.Register(opts.DefaultCommand, MAIN_RESOURCE); err != nil {
+	if defaultCommand != nil {
+		if err := e.Register(defaultCommand, MAIN_RESOURCE); err != nil {
 			return nil, err
 		}
 	}
