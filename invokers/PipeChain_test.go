@@ -3,8 +3,8 @@
 package invokers
 
 import(
+	"fmt"
 	"bytes"
-	"log"
 	"os/exec"
 	"testing"
 	"github.com/stretchr/testify/assert"
@@ -21,7 +21,7 @@ func TestPipeChain_Run(t *testing.T) {
 			exec.Command("wc"),
 		)
 		output := string(o.Bytes())
-		log.Printf("Stdout: [%s]\n", output)
+		fmt.Printf("Stdout: [%s]\n", output)
 		assert.Equal(t, output, "      1       2      13\n")
 		assert.Nil(t, err)
 	})
@@ -34,7 +34,7 @@ func TestPipeChain_Run(t *testing.T) {
 			exec.Command("ls", "-7"),
 			exec.Command("wc"),
 		)
-		log.Printf("ErrMsg: [%s]\n", err.Error())
+		fmt.Printf("ErrMsg: [%s]\n", err.Error())
 		assert.NotNil(t, err)
 		assert.Equal(t, err.Error(), "exit status 2")
 	})

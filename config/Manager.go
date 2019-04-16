@@ -2,7 +2,6 @@ package config
 
 import (
 	"encoding/json"
-	"log"
 	"time"
 	"github.com/opwire/opwire-agent/invokers"
 	"github.com/opwire/opwire-agent/storages"
@@ -42,13 +41,14 @@ func NewManager(options ManagerOptions) (*Manager) {
 	return m
 }
 
-func (m *Manager) Load() (cfg *Configuration, result ValidationResult, err error) {
-	cfg, err = m.loadJson()
+func (m *Manager) Load() (cfg *Configuration, result *LoadResult, err error) {
+	result = &LoadResult{}
+	cfg, result.configPath, result.configFrom, err = m.loadJson()
 	if err != nil {
 		return nil, nil, err
 	}
 	if cfg != nil {
-		result, err = m.validator.Validate(cfg)
+		result.validationResult, err = m.validator.Validate(cfg)
 	} else {
 		v := "0.0.0"
 		if m.options != nil {
@@ -64,31 +64,60 @@ func (m *Manager) Load() (cfg *Configuration, result ValidationResult, err error
 	return cfg, result, err
 }
 
-func (m *Manager) loadJson() (*Configuration, error) {
+func (m *Manager) loadJson() (*Configuration, string, string, error) {
 	fs := storages.GetFs()
 	cfgpath, from := m.locator.GetConfigPath(m.options.GetConfigPath())
 	if len(from) == 0 {
-		log.Printf("Configuration file not found, use default configuration.")
-		return nil, nil
-	} else {
-		log.Printf("Configuration path [%s] from [%s]", cfgpath, from)
+		return nil, cfgpath, from, nil
 	}
 
 	config := &Configuration{}
 
 	configFile, err := fs.Open(cfgpath)
-	defer configFile.Close()
+	if configFile != nil {
+		defer configFile.Close()
+	}
 	if err != nil {
-		return nil, err
+		return nil, cfgpath, from, err
 	}
 
 	parser := json.NewDecoder(configFile)
-	err = parser.Decode(config)
-	if err != nil {
-		return nil, err
+	if parser != nil {
+		err = parser.Decode(config)
+		if err != nil {
+			return nil, cfgpath, from, err
+		}
 	}
 
-	return config, nil
+	return config, cfgpath, from, nil
+}
+
+type LoadResult struct {
+	validationResult *ValidationResult
+	configFrom string
+	configPath string
+}
+
+func (r *LoadResult) Valid() bool {
+	if r.validationResult == nil {
+		return true
+	}
+	return r.validationResult.Valid()
+}
+
+func (r *LoadResult) Errors() []ValidationError {
+	if r.validationResult == nil {
+		return nil
+	}
+	return r.validationResult.Errors()
+}
+
+func (r *LoadResult) GetConfigPath() string {
+	return r.configPath
+}
+
+func (r *LoadResult) GetConfigFrom() string {
+	return r.configFrom
 }
 
 type configAgent struct {

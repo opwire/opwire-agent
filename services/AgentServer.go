@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -18,7 +17,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/opwire/opwire-agent/config"
 	"github.com/opwire/opwire-agent/invokers"
-	"github.com/opwire/opwire-agent/logging"
+	loq "github.com/opwire/opwire-agent/logging"
 	"github.com/opwire/opwire-agent/utils"
 )
 
@@ -50,7 +49,7 @@ type AgentServer struct {
 	reqSerializer *ReqSerializer
 	textFormatter *TextFormatter
 	stateStore *StateStore
-	logger *logging.Logger
+	logger *loq.Logger
 	executor CommandExecutor
 	options AgentServerOptions
 	listeningLock int32
@@ -104,9 +103,20 @@ func NewAgentServer(o AgentServerOptions) (s *AgentServer, err error) {
 	}
 
 	// create a new logger
-	s.logger, err = logging.NewLogger(conf.GetLogging())
+	s.logger, err = loq.NewLogger(conf.GetLogging())
 	if err != nil {
 		return nil, err
+	}
+
+	// log configuration loading info
+	if result != nil {
+		cfgFrom := result.GetConfigFrom()
+		cfgPath := result.GetConfigPath()
+		if len(cfgFrom) == 0 {
+			s.logger.Log(loq.INFO, "Configuration file not found, use default configuration.")
+		} else {
+			s.logger.Log(loq.INFO, fmt.Sprintf("Configuration path [%s] from [%s]", cfgPath, cfgFrom))
+		}
 	}
 
 	// creates a new command executor
@@ -158,7 +168,6 @@ func NewAgentServer(o AgentServerOptions) (s *AgentServer, err error) {
 	for _, urlPath := range urlPaths {
 		filePath := webStaticPath[urlPath]
 		if utils.IsExists(filePath) {
-			log.Printf("Map [%s] -> [%s]", urlPath, filePath)
 			s.httpRouter.PathPrefix(urlPath).Handler(http.StripPrefix(urlPath, http.FileServer(http.Dir(filePath))))
 		}
 	}
@@ -222,19 +231,19 @@ func (s *AgentServer) Shutdown() (error) {
 
 	if s.isReady() {
 		if err := s.lockService(); err != nil {
-			log.Printf("lockService() failed: %v", err)
+			s.logger.Log(loq.ERROR, "lockService() failed", loq.Error(err))
 		}
 
-		log.Printf("No new requests allowed, wait for %s\n", closingTimeout.String())
+		s.logger.Log(loq.INFO, "No new requests allowed, wait for ...", loq.Duration("closingTimeout", closingTimeout))
 		<-time.Tick(closingTimeout)
 	}
 
 	if s.httpServer != nil {
 		if err := s.httpServer.Shutdown(context.Background()); err != nil {
-			log.Printf("httpServer.Shutdown() failed: %v", err)
+			s.logger.Log(loq.ERROR, "httpServer.Shutdown() failed", loq.Error(err))
 		}
 
-		log.Printf("HTTP server is shutting down in: %s\n", closingTimeout.String())
+		s.logger.Log(loq.INFO, "HTTP server is shutting down in ...", loq.Duration("closingTimeout", closingTimeout))
 		<-time.Tick(closingTimeout)
 	}
 
@@ -519,7 +528,9 @@ func normalizeMethod(method string) (string, bool) {
 func (s *AgentServer) buildCommandInvocation(r *http.Request, resourceName string, fromExecUrl bool) (*invokers.CommandInvocation, error) {
 	// extract command identifier
 	methodName := r.Method
-	log.Printf("Command [%s#%s] has been invoked", resourceName, methodName)
+	s.logger.Log(loq.INFO, "A command has been invoked",
+		loq.String("resourceName", resourceName),
+		loq.String("methodName", methodName))
 	// prepare environment variables
 	envs := os.Environ()
 	// import the release information
@@ -661,7 +672,7 @@ func (s *AgentServer) listenAndServe() (error) {
 		signal.Notify(sig, SIGLIST...)
 		<-sig
 
-		log.Printf("SIGTERM/SIGTSTP received. Agent is shutting down ...\n")
+		s.logger.Log(loq.INFO, "SIGTERM/SIGTSTP received. Agent is shutting down ...")
 
 		s.Shutdown()
 
@@ -670,7 +681,7 @@ func (s *AgentServer) listenAndServe() (error) {
 
 	go func() {
 		if err := s.httpServer.ListenAndServe(); err != http.ErrServerClosed {
-			log.Printf("httpServer.ListenAndServe() failed: %v", err)
+			s.logger.Log(loq.ERROR, "httpServer.ListenAndServe() failed", loq.Error(err))
 			close(idleConnections)
 		}
 	}()

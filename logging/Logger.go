@@ -14,6 +14,9 @@ var Bool = zap.Bool
 var Bools = zap.Bools
 var ByteString = zap.ByteString
 var ByteStrings = zap.ByteStrings
+var Duration = zap.Duration
+var Error = zap.Error
+var Errors = zap.Errors
 var String = zap.String
 
 type LogLevel int

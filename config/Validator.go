@@ -14,10 +14,8 @@ type Validator struct {
 	schemaLoader gojsonschema.JSONLoader
 }
 
-type ValidationResult interface {
-	Valid() bool
-	Errors() []gojsonschema.ResultError
-}
+type ValidationResult = gojsonschema.Result
+type ValidationError = gojsonschema.ResultError
 
 func NewValidator() (*Validator) {
 	validator := &Validator{}
@@ -25,7 +23,7 @@ func NewValidator() (*Validator) {
 	return validator
 }
 
-func (v *Validator) Validate(cfg *Configuration) (ValidationResult, error) {
+func (v *Validator) Validate(cfg *Configuration) (*ValidationResult, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("The configuration object is nil")
 	}
