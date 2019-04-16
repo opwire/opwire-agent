@@ -18,6 +18,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/opwire/opwire-agent/config"
 	"github.com/opwire/opwire-agent/invokers"
+	"github.com/opwire/opwire-agent/logging"
 	"github.com/opwire/opwire-agent/utils"
 )
 
@@ -49,6 +50,7 @@ type AgentServer struct {
 	reqSerializer *ReqSerializer
 	textFormatter *TextFormatter
 	stateStore *StateStore
+	logger *logging.Logger
 	executor CommandExecutor
 	options AgentServerOptions
 	listeningLock int32
@@ -99,6 +101,12 @@ func NewAgentServer(o AgentServerOptions) (s *AgentServer, err error) {
 	}
 	if conf == nil {
 		return nil, fmt.Errorf("The configuration must not be nil")
+	}
+
+	// create a new logger
+	s.logger, err = logging.NewLogger(conf.GetLogging())
+	if err != nil {
+		return nil, err
 	}
 
 	// creates a new command executor

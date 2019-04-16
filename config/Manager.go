@@ -17,6 +17,7 @@ type Configuration struct {
 	Settings map[string]interface{} `json:"settings"`
 	SettingsFormat *string `json:"settings-format"`
 	HttpServer *configHttpServer `json:"http-server"`
+	Logging *configLogging `json:"logging"`
 	managerOptions ManagerOptions
 }
 
@@ -373,4 +374,15 @@ func (c *sectionSingleFlight) GetByUserIP() bool {
 		return false
 	}
 	return *c.ByUserIP
+}
+
+type configLogging struct {
+}
+
+func (c *Configuration) GetLogging() *configLogging {
+	logging := c.Logging
+	if logging == nil {
+		logging = &configLogging{}
+	}
+	return logging
 }

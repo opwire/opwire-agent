@@ -28,10 +28,6 @@ const (
 	FATAL
 )
 
-type Logger struct {
-	zapLogger *zap.Logger
-}
-
 var defaultConfig string = `{
 	"level": "debug",
 	"encoding": "console",
@@ -46,7 +42,14 @@ var defaultConfig string = `{
 	}
 }`
 
-func NewLogger() (*Logger, error) {
+type LoggerOptions interface {
+}
+
+type Logger struct {
+	zapLogger *zap.Logger
+}
+
+func NewLogger(opts LoggerOptions) (*Logger, error) {
 	var cfg zap.Config
 	if err := json.Unmarshal([]byte(defaultConfig), &cfg); err != nil {
 		return nil, err
