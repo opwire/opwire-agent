@@ -4,11 +4,11 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
-	"log"
 	"net"
 	"net/http"
 	"runtime"
 	"strings"
+	loq "github.com/opwire/opwire-agent/logging"
 	"golang.org/x/sync/semaphore"
 	"golang.org/x/sync/singleflight"
 )
@@ -18,6 +18,7 @@ type ReqRestrictor struct {
 	semaphore *semaphore.Weighted
 	flightGroup *singleflight.Group
 	flightPattern *SingleFlightPattern
+	logger *loq.Logger
 }
 
 type ReqRestrictorOptions interface {
@@ -43,8 +44,10 @@ type SingleFlightPattern struct {
 	HasUserIP bool
 }
 
-func NewReqRestrictor(opts ReqRestrictorOptions) (*ReqRestrictor, error) {
+func NewReqRestrictor(logger *loq.Logger, opts ReqRestrictorOptions) (*ReqRestrictor, error) {
 	rr := new(ReqRestrictor)
+
+	rr.logger = logger
 
 	rr.context = context.TODO()
 
@@ -141,7 +144,7 @@ func (rr *ReqRestrictor) FilterByDigest(r *http.Request, action func() (interfac
 }
 
 func (rr *ReqRestrictor) LogResult(groupKey string, state interface{}, err error, shared bool) (interface{}, error, bool) {
-	log.Printf("request [%s] has duplicated by key: %t", groupKey, shared)
+	rr.logger.Log(loq.INFO, fmt.Sprintf("request [%s] has duplicated by key: %t", groupKey, shared))
 	return state, err, shared
 }
 

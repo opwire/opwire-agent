@@ -137,7 +137,7 @@ func NewAgentServer(o AgentServerOptions) (s *AgentServer, err error) {
 	}
 
 	// create a weighted semaphore
-	s.reqRestrictor, err = NewReqRestrictor(conf.GetHttpServer())
+	s.reqRestrictor, err = NewReqRestrictor(s.logger, conf.GetHttpServer())
 
 	if err != nil {
 		return nil, err

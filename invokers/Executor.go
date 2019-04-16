@@ -5,9 +5,9 @@ import(
 	"fmt"
 	"bytes"
 	"io"
-	"log"
 	"os/exec"
 	"time"
+	loq "github.com/opwire/opwire-agent/logging"
 	"github.com/opwire/opwire-agent/utils"
 )
 
@@ -17,12 +17,14 @@ const MAIN_RESOURCE string = ":default-resource:"
 type TimeSecond float64
 
 type Executor struct {
-	resources map[string]*CommandEntrypoint
 	newPipeChain func() (PipeChainRunner)
+	resources map[string]*CommandEntrypoint
+	logger *loq.Logger
 }
 
 type ExecutorOptions struct {
 	DefaultCommand *CommandDescriptor
+	Logger *loq.Logger
 }
 
 type CommandEntrypoint struct {
@@ -59,12 +61,19 @@ type PipeChainRunner interface {
 	Stop()
 }
 
-func NewExecutor(opts *ExecutorOptions) (*Executor, error) {
+func NewExecutor(opts *ExecutorOptions) (e *Executor, err error) {
+	e = &Executor{}
 	var defaultCommand *CommandDescriptor
 	if opts != nil {
+		e.logger = opts.Logger
 		defaultCommand = opts.DefaultCommand
 	}
-	e := &Executor{}
+	if e.logger == nil {
+		e.logger, err = loq.NewLogger(nil)
+		if err != nil {
+			return nil, err
+		}
+	}
 	if defaultCommand != nil {
 		if err := e.Register(defaultCommand, MAIN_RESOURCE); err != nil {
 			return nil, err
@@ -225,7 +234,7 @@ func (e *Executor) Run(ib io.Reader, opts *CommandInvocation, ob io.Writer, eb i
 
 				select {
 				case <-ctx.Done():
-					log.Printf("Execution is timeout after %f seconds. Error: %s\n", timeout, ctx.Err())
+					e.logger.Log(loq.INFO, fmt.Sprintf("Context is timeout after %f seconds. Error: %s", timeout, ctx.Err()))
 					pipeChain.Stop()
 					err := <-c
 					state.IsTimeout = true
@@ -237,10 +246,11 @@ func (e *Executor) Run(ib io.Reader, opts *CommandInvocation, ob io.Writer, eb i
 				}
 			}
 
+			// Run without Context
 			var timer *time.Timer
 			if timeout > 0 {
 				timer = time.AfterFunc(ConvertSecondToDuration(timeout), func() {
-					log.Printf("Execution is timeout after %f seconds\n", timeout)
+					e.logger.Log(loq.INFO, fmt.Sprintf("Execution is timeout after %f seconds", timeout))
 					pipeChain.Stop()
 					state.IsTimeout = true
 				})
