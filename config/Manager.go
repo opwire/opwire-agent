@@ -66,9 +66,9 @@ func (m *Manager) Load() (cfg *Configuration, result *LoadResult, err error) {
 
 func (m *Manager) loadJson() (*Configuration, string, string, error) {
 	fs := storages.GetFs()
-	cfgpath, from := m.locator.GetConfigPath(m.options.GetConfigPath())
-	if len(from) == 0 {
-		return nil, cfgpath, from, nil
+	cfgpath, cfgfrom := m.locator.GetConfigPath(m.options.GetConfigPath())
+	if len(cfgfrom) == 0 {
+		return nil, cfgpath, cfgfrom, nil
 	}
 
 	config := &Configuration{}
@@ -78,18 +78,18 @@ func (m *Manager) loadJson() (*Configuration, string, string, error) {
 		defer configFile.Close()
 	}
 	if err != nil {
-		return nil, cfgpath, from, err
+		return nil, cfgpath, cfgfrom, err
 	}
 
 	parser := json.NewDecoder(configFile)
 	if parser != nil {
 		err = parser.Decode(config)
 		if err != nil {
-			return nil, cfgpath, from, err
+			return nil, cfgpath, cfgfrom, err
 		}
 	}
 
-	return config, cfgpath, from, nil
+	return config, cfgpath, cfgfrom, nil
 }
 
 type LoadResult struct {

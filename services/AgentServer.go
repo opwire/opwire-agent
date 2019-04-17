@@ -120,7 +120,7 @@ func NewAgentServer(o AgentServerOptions) (s *AgentServer, err error) {
 	}
 
 	// creates a new command executor
-	s.executor, err = invokers.NewExecutor(&invokers.ExecutorOptions{})
+	s.executor, err = invokers.NewExecutor(&invokers.ExecutorOptions{ Logger: s.logger })
 
 	if err != nil {
 		return nil, err

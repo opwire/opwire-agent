@@ -199,6 +199,13 @@ func (e *Executor) RunOnRawData(opts *CommandInvocation, inData []byte) ([]byte,
 
 func (e *Executor) Run(ib io.Reader, opts *CommandInvocation, ob io.Writer, eb io.Writer) (*ExecutionState, error) {
 	startTime := time.Now()
+
+	runLogger := e.logger
+	if opts != nil && len(opts.RequestId) > 0 {
+		runLogger = e.logger.With(loq.String("requestId", opts.RequestId))
+		defer runLogger.Sync()
+	}
+
 	if descriptor, _, _, err := e.ResolveCommandDescriptor(opts); err == nil {
 		if cmds, err := buildExecCmds(descriptor); err == nil {
 			count := len(cmds)
@@ -213,15 +220,9 @@ func (e *Executor) Run(ib io.Reader, opts *CommandInvocation, ob io.Writer, eb i
 				}
 			}
 
-			var pipeLogger *loq.Logger
-			if opts != nil && len(opts.RequestId) > 0 {
-				pipeLogger = e.logger.With(loq.String("requestId", opts.RequestId))
-				defer pipeLogger.Sync()
-			}
-
 			state := &ExecutionState{}
 			constructor := e.GetNewPipeChain()
-			pipeChain := constructor(pipeLogger)
+			pipeChain := constructor(runLogger)
 
 			timeout := GetExecutionTimeout(descriptor, opts)
 
@@ -244,7 +245,7 @@ func (e *Executor) Run(ib io.Reader, opts *CommandInvocation, ob io.Writer, eb i
 
 				select {
 				case <-ctx.Done():
-					e.logger.Log(loq.INFO, fmt.Sprintf("Context is timeout after %f seconds. Error: %s", timeout, ctx.Err()))
+					runLogger.Log(loq.INFO, fmt.Sprintf("Context is timeout after %f seconds.", timeout), loq.Error(ctx.Err()))
 					pipeChain.Stop()
 					err := <-c
 					state.IsTimeout = true
@@ -260,7 +261,7 @@ func (e *Executor) Run(ib io.Reader, opts *CommandInvocation, ob io.Writer, eb i
 			var timer *time.Timer
 			if timeout > 0 {
 				timer = time.AfterFunc(ConvertSecondToDuration(timeout), func() {
-					e.logger.Log(loq.INFO, fmt.Sprintf("Execution is timeout after %f seconds", timeout))
+					runLogger.Log(loq.INFO, fmt.Sprintf("Execution is timeout after %f seconds", timeout))
 					pipeChain.Stop()
 					state.IsTimeout = true
 				})
