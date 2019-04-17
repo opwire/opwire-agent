@@ -216,6 +216,7 @@ func (e *Executor) Run(ib io.Reader, opts *CommandInvocation, ob io.Writer, eb i
 			var pipeLogger *loq.Logger
 			if opts != nil && len(opts.RequestId) > 0 {
 				pipeLogger = e.logger.With(loq.String("requestId", opts.RequestId))
+				defer pipeLogger.Sync()
 			}
 
 			state := &ExecutionState{}
