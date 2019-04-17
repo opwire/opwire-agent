@@ -414,10 +414,18 @@ func (c *Configuration) GetLogging() *configLogging {
 }
 
 type configLogging struct {
+	Enabled *bool `json:"enabled"`
 	Format *string `json:"format"`
 	Level *string `json:"level"`
 	OutputPaths []string `json:"output-paths"`
 	ErrorOutputPaths []string `json:"error-output-paths"`
+}
+
+func (c *configLogging) GetEnabled() bool {
+	if c.Enabled == nil {
+		return true
+	}
+	return *c.Enabled
 }
 
 func (c *configLogging) GetFormat() string {

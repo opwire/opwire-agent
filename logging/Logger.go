@@ -50,6 +50,7 @@ var defaultConfig string = `{
 }`
 
 type LoggerOptions interface {
+	GetEnabled() bool
 	GetFormat() string
 	GetLevel() string
 	GetOutputPaths() []string
@@ -64,6 +65,12 @@ func NewLogger(opts LoggerOptions) (*Logger, error) {
 	var cfg zap.Config
 	if err := json.Unmarshal([]byte(defaultConfig), &cfg); err != nil {
 		return nil, err
+	}
+
+	if opts != nil && !opts.GetEnabled() {
+		l := new(Logger)
+		l.zapLogger = zap.NewNop()
+		return l, nil
 	}
 
 	if opts != nil {

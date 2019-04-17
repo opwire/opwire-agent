@@ -205,6 +205,16 @@ var configurationSchema string = `{
 		"Logging": {
 			"type": "object",
 			"properties": {
+				"enabled": {
+					"oneOf": [
+						{
+							"type": "null"
+						},
+						{
+							"type": "boolean"
+						}
+					]
+				},
 				"format": {
 					"oneOf": [
 						{
