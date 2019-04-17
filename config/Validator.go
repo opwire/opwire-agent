@@ -105,6 +105,16 @@ var configurationSchema string = `{
 		"settings-format": {
 			"$ref": "#/definitions/SettingsFormat"
 		},
+		"logging": {
+			"oneOf": [
+				{
+					"type": "null"
+				},
+				{
+					"$ref": "#/definitions/Logging"
+				}
+			]
+		},
 		"http-server": {
 			"oneOf": [
 				{
@@ -191,6 +201,59 @@ var configurationSchema string = `{
 					"enum": [ "json", "flat" ]
 				}
 			]
+		},
+		"Logging": {
+			"type": "object",
+			"properties": {
+				"format": {
+					"oneOf": [
+						{
+							"type": "null"
+						},
+						{
+							"type": "string",
+							"enum": [ "json", "flat" ]
+						}
+					]
+				},
+				"level": {
+					"oneOf": [
+						{
+							"type": "null"
+						},
+						{
+							"type": "string",
+							"enum": [ "debug", "info", "warn", "error", "panic", "fatal" ]
+						}
+					]
+				},
+				"output-paths": {
+					"oneOf": [
+						{
+							"type": "null"
+						},
+						{
+							"type": "array",
+							"items": {
+								"type": "string"
+							}
+						}
+					]
+				},
+				"error-output-paths": {
+					"oneOf": [
+						{
+							"type": "null"
+						},
+						{
+							"type": "array",
+							"items": {
+								"type": "string"
+							}
+						}
+					]
+				}
+			}
 		},
 		"HttpServer": {
 			"type": "object",
