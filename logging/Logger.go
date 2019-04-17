@@ -98,6 +98,13 @@ func (l *Logger) Log(level LogLevel, msg string, fields ...Field) {
 	}
 }
 
+func (l *Logger) With(fields ...Field) *Logger {
+	l.assertReady()
+	branch := &Logger{}
+	branch.zapLogger = l.zapLogger.With(fields...)
+	return branch
+}
+
 func (l *Logger) Sync() error {
 	l.assertReady()
 	return l.zapLogger.Sync()

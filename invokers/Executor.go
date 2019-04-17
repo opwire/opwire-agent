@@ -17,7 +17,7 @@ const MAIN_RESOURCE string = ":default-resource:"
 type TimeSecond float64
 
 type Executor struct {
-	newPipeChain func() (PipeChainRunner)
+	newPipeChain func(logger *loq.Logger) (PipeChainRunner)
 	resources map[string]*CommandEntrypoint
 	logger *loq.Logger
 }
@@ -48,6 +48,7 @@ type CommandInvocation struct {
 	DirectCommand string
 	ResourceName string
 	MethodName string
+	RequestId string
 	ExecutionTimeout TimeSecond
 }
 
@@ -111,10 +112,13 @@ func extractNames(names []string) (string, string, error) {
 	}
 }
 
-func (e *Executor) GetNewPipeChain() (func() PipeChainRunner) {
+func (e *Executor) GetNewPipeChain() (func(logger *loq.Logger) PipeChainRunner) {
 	if e.newPipeChain == nil {
-		e.newPipeChain = func() (PipeChainRunner) {
-			return NewPipeChain(e.logger)
+		e.newPipeChain = func(logger *loq.Logger) (PipeChainRunner) {
+			if logger == nil {
+				logger = e.logger
+			}
+			return NewPipeChain(logger)
 		}
 	}
 	return e.newPipeChain
@@ -209,9 +213,14 @@ func (e *Executor) Run(ib io.Reader, opts *CommandInvocation, ob io.Writer, eb i
 				}
 			}
 
+			var pipeLogger *loq.Logger
+			if opts != nil && len(opts.RequestId) > 0 {
+				pipeLogger = e.logger.With(loq.String("requestId", opts.RequestId))
+			}
+
 			state := &ExecutionState{}
 			constructor := e.GetNewPipeChain()
-			pipeChain := constructor()
+			pipeChain := constructor(pipeLogger)
 
 			timeout := GetExecutionTimeout(descriptor, opts)
 

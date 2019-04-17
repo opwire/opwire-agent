@@ -387,13 +387,13 @@ func (s *AgentServer) doExecuteCommand(w http.ResponseWriter, r *http.Request, r
 	ib, tee := s.generateTeeBuffer()
 
 	ir, irErr := s.buildCommandStdinReader(r, tee)
+	if ir != nil {
+		defer ir.Close()
+	}
 	if irErr != nil {
 		w.Header().Set(RES_HEADER_ERROR_MESSAGE, irErr.Error())
 		w.WriteHeader(http.StatusBadRequest)
 		return
-	}
-	if ir != nil {
-		defer ir.Close()
 	}
 	ci, ciErr := s.buildCommandInvocation(r, resourceName, fromExecUrl)
 	if ciErr != nil {
@@ -527,10 +527,12 @@ func normalizeMethod(method string) (string, bool) {
 
 func (s *AgentServer) buildCommandInvocation(r *http.Request, resourceName string, fromExecUrl bool) (*invokers.CommandInvocation, error) {
 	// extract command identifier
+	requestId := r.Header.Get(REQ_HEADER_REQUEST_ID_NAME)
 	methodName := r.Method
 	s.logger.Log(loq.INFO, "A command has been invoked",
 		loq.String("resourceName", resourceName),
-		loq.String("methodName", methodName))
+		loq.String("methodName", methodName),
+		loq.String("requestId", requestId))
 	// prepare environment variables
 	envs := os.Environ()
 	// import the release information
@@ -554,6 +556,7 @@ func (s *AgentServer) buildCommandInvocation(r *http.Request, resourceName strin
 		Envs: envs,
 		ResourceName: resourceName,
 		MethodName: methodName,
+		RequestId: requestId,
 	}
 	// determine the direct-command
 	if s.options != nil && len(s.options.GetDirectCommand()) > 0 {
