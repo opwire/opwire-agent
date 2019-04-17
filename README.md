@@ -18,7 +18,7 @@ Program `opwire-agent` is a simple command line wrapper. It receives a request f
 
 ## Architecture
 
-![Architecture](https://raw.github.com/opwire/opwire-agent/master/docs/assets/images/arch.svg?sanitize=true)
+![Architecture](https://raw.github.com/opwire/opwire-agent/master/docs/assets/images/arch.png)
 
 ## Configuration
 
