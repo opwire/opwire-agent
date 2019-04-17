@@ -202,6 +202,7 @@ func NewAgentServer(o AgentServerOptions) (s *AgentServer, err error) {
 }
 
 func (s *AgentServer) Start() (error) {
+	// create a httpServer instance
 	if s.httpServer == nil {
 		s.httpServer = &http.Server{
 			Addr: s.httpOptions.Addr,
@@ -215,8 +216,31 @@ func (s *AgentServer) Start() (error) {
 			s.httpServer.WriteTimeout = s.httpOptions.WriteTimeout
 		}
 	}
+
 	// listens and waiting for TERM signal for shutting down
-	return s.listenAndServe()
+	idleConnections := make(chan struct{})
+
+	go func() {
+		SIGLIST := utils.ShutdownSignals()
+		sig := make(chan os.Signal, 1)
+		signal.Notify(sig, SIGLIST...)
+		<-sig
+		s.logger.Log(loq.INFO, "SIGTERM/SIGTSTP received. Agent is shutting down ...")
+		s.Shutdown()
+		close(idleConnections)
+	}()
+
+	go func() {
+		if err := s.httpServer.ListenAndServe(); err != http.ErrServerClosed {
+			s.logger.Log(loq.ERROR, "httpServer.ListenAndServe() failed", loq.Error(err))
+			close(idleConnections)
+		}
+	}()
+
+	s.unlockService()
+
+	<-idleConnections
+	return nil
 }
 
 func (s *AgentServer) Shutdown() (error) {
@@ -233,7 +257,6 @@ func (s *AgentServer) Shutdown() (error) {
 		if err := s.lockService(); err != nil {
 			s.logger.Log(loq.ERROR, "lockService() failed", loq.Error(err))
 		}
-
 		s.logger.Log(loq.INFO, "No new requests allowed, wait for ...", loq.Duration("closingTimeout", closingTimeout))
 		<-time.Tick(closingTimeout)
 	}
@@ -242,7 +265,6 @@ func (s *AgentServer) Shutdown() (error) {
 		if err := s.httpServer.Shutdown(context.Background()); err != nil {
 			s.logger.Log(loq.ERROR, "httpServer.Shutdown() failed", loq.Error(err))
 		}
-
 		s.logger.Log(loq.INFO, "HTTP server is shutting down in ...", loq.Duration("closingTimeout", closingTimeout))
 		<-time.Tick(closingTimeout)
 	}
@@ -664,35 +686,6 @@ func (s *AgentServer) explainResult(w http.ResponseWriter, ib *bytes.Buffer, ci 
 	if err != nil {
 		s.textFormatter.PrintTextgraph(w, "error", []byte(err.Error()))
 	}
-}
-
-func (s *AgentServer) listenAndServe() (error) {
-	idleConnections := make(chan struct{})
-
-	go func() {
-		SIGLIST := utils.ShutdownSignals()
-		sig := make(chan os.Signal, 1)
-		signal.Notify(sig, SIGLIST...)
-		<-sig
-
-		s.logger.Log(loq.INFO, "SIGTERM/SIGTSTP received. Agent is shutting down ...")
-
-		s.Shutdown()
-
-		close(idleConnections)
-	}()
-
-	go func() {
-		if err := s.httpServer.ListenAndServe(); err != http.ErrServerClosed {
-			s.logger.Log(loq.ERROR, "httpServer.ListenAndServe() failed", loq.Error(err))
-			close(idleConnections)
-		}
-	}()
-
-	s.unlockService()
-
-	<-idleConnections
-	return nil
 }
 
 func (s *AgentServer) isReady() bool {
