@@ -114,7 +114,7 @@ func extractNames(names []string) (string, string, error) {
 func (e *Executor) GetNewPipeChain() (func() PipeChainRunner) {
 	if e.newPipeChain == nil {
 		e.newPipeChain = func() (PipeChainRunner) {
-			return &PipeChain{}
+			return NewPipeChain(e.logger)
 		}
 	}
 	return e.newPipeChain

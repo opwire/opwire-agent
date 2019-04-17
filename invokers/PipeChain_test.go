@@ -12,7 +12,7 @@ import(
 
 func TestPipeChain_Run(t *testing.T) {
 	t.Run("ok", func(t *testing.T) {
-		pc := &PipeChain{}
+		pc := NewPipeChain(nil)
 		var i bytes.Buffer
 		var o bytes.Buffer
 		var e bytes.Buffer
@@ -26,7 +26,7 @@ func TestPipeChain_Run(t *testing.T) {
 		assert.Nil(t, err)
 	})
 	t.Run("failed", func(t *testing.T) {
-		pc := &PipeChain{}
+		pc := NewPipeChain(nil)
 		var i bytes.Buffer
 		var o bytes.Buffer
 		var e bytes.Buffer

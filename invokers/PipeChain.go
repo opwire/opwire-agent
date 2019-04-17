@@ -1,14 +1,26 @@
 package invokers
 
 import (
+	"fmt"
 	"io"
-	"log"
 	"os/exec"
+	loq "github.com/opwire/opwire-agent/logging"
 )
 
 type PipeChain struct {
+	logger *loq.Logger
 	stopChan chan int
 	stopFlag bool
+}
+
+func NewPipeChain(logger *loq.Logger) *PipeChain {
+	pip := &PipeChain{}
+	if logger != nil {
+		pip.logger = logger
+	} else {
+		pip.logger, _ = loq.NewLogger(nil)
+	}
+	return pip
 }
 
 func (p *PipeChain) Run(ib io.Reader, ob io.Writer, eb io.Writer, chain ...*exec.Cmd) error {
@@ -37,16 +49,16 @@ func (p *PipeChain) Run(ib io.Reader, ob io.Writer, eb io.Writer, chain ...*exec
 			for idx, cmd := range chain {
 				if cmd != nil && cmd.Process != nil {
 					if cmd.ProcessState == nil {
-						log.Printf("Pipe[%d] - Process[%d] is running, kill it now\n", idx, cmd.Process.Pid)
+						p.logger.Log(loq.INFO, fmt.Sprintf("Pipe[%d] - Process[%d] is running, kill it now", idx, cmd.Process.Pid))
 						procErr := cmd.Process.Kill()
 						if procErr != nil {
-							log.Printf("Pipe[%d] - Process[%d]: Kill() failed %s\n", idx, cmd.Process.Pid, procErr.Error())
+							p.logger.Log(loq.ERROR, fmt.Sprintf("Pipe[%d] - Process[%d]: Kill() failed %s", idx, cmd.Process.Pid, procErr))
 						}
 					} else {
-						log.Printf("Pipe[%d] - Process[%d] has been finished\n", idx, cmd.Process.Pid)
+						p.logger.Log(loq.INFO, fmt.Sprintf("Pipe[%d] - Process[%d] has been finished", idx, cmd.Process.Pid))
 					}
 				} else {
-					log.Printf("Pipe[%d] - Process has not been started yet\n", idx)
+					p.logger.Log(loq.INFO, fmt.Sprintf("Pipe[%d] - Process has not been started yet", idx))
 				}
 			}
 		}
