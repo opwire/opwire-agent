@@ -50,6 +50,10 @@ var defaultConfig string = `{
 }`
 
 type LoggerOptions interface {
+	GetFormat() string
+	GetLevel() string
+	GetOutputPaths() []string
+	GetErrorOutputPaths() []string
 }
 
 type Logger struct {
@@ -60,6 +64,37 @@ func NewLogger(opts LoggerOptions) (*Logger, error) {
 	var cfg zap.Config
 	if err := json.Unmarshal([]byte(defaultConfig), &cfg); err != nil {
 		return nil, err
+	}
+
+	if opts != nil {
+		switch(opts.GetFormat()) {
+		case "json":
+			cfg.Encoding = "json"
+		}
+		switch(opts.GetLevel()) {
+		case "debug":
+			cfg.Level.SetLevel(zap.DebugLevel)
+		case "info":
+			cfg.Level.SetLevel(zap.InfoLevel)
+		case "warn":
+			cfg.Level.SetLevel(zap.WarnLevel)
+		case "error":
+			cfg.Level.SetLevel(zap.ErrorLevel)
+		case "panic":
+			cfg.Level.SetLevel(zap.PanicLevel)
+		case "fatal":
+			cfg.Level.SetLevel(zap.FatalLevel)
+		}
+		// customize OutputPaths
+		outputPaths := opts.GetOutputPaths()
+		if outputPaths != nil && len(outputPaths) > 0 {
+			cfg.OutputPaths = outputPaths
+		}
+		// customize ErrorOutputPaths
+		errorOutputPaths := opts.GetErrorOutputPaths()
+		if errorOutputPaths != nil && len(errorOutputPaths) > 0 {
+			cfg.ErrorOutputPaths = errorOutputPaths
+		}
 	}
 
 	logger, err := cfg.Build()

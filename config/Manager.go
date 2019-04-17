@@ -405,13 +405,39 @@ func (c *sectionSingleFlight) GetByUserIP() bool {
 	return *c.ByUserIP
 }
 
-type configLogging struct {
-}
-
 func (c *Configuration) GetLogging() *configLogging {
 	logging := c.Logging
 	if logging == nil {
 		logging = &configLogging{}
 	}
 	return logging
+}
+
+type configLogging struct {
+	Format *string `json:"format"`
+	Level *string `json:"level"`
+	OutputPaths []string `json:"output-paths"`
+	ErrorOutputPaths []string `json:"error-output-paths"`
+}
+
+func (c *configLogging) GetFormat() string {
+	if c.Format == nil {
+		return "flat"
+	}
+	return *c.Format
+}
+
+func (c *configLogging) GetLevel() string {
+	if c.Level == nil {
+		return "debug"
+	}
+	return *c.Level
+}
+
+func (c *configLogging) GetOutputPaths() []string {
+	return c.OutputPaths
+}
+
+func (c *configLogging) GetErrorOutputPaths() []string {
+	return c.ErrorOutputPaths
 }
