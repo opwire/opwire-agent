@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 type Field = zap.Field
+
 var Any = zap.Any
 var Array = zap.Array
 var Binary = zap.Binary
@@ -19,24 +21,60 @@ var Complex128s = zap.Complex128s
 var Complex64 = zap.Complex64
 var Complex64s = zap.Complex64s
 var Duration = zap.Duration
+var Durations = zap.Durations
+var Float32 = zap.Float32
+var Float32s = zap.Float32s
+var Float64 = zap.Float64
+var Float64s = zap.Float64s
+var Int = zap.Int
+var Ints = zap.Ints
+var Int8 = zap.Int8
+var Int8s = zap.Int8s
+var Int16 = zap.Int16
+var Int16s = zap.Int16s
+var Int32 = zap.Int32
+var Int32s = zap.Int32s
+var Int64 = zap.Int64
+var Int64s = zap.Int64s
 var Error = zap.Error
 var Errors = zap.Errors
+var NamedError = zap.NamedError
+var Reflect = zap.Reflect
 var String = zap.String
+var Strings = zap.Strings
+var Time = zap.Time
+var Times = zap.Times
+var Stack = zap.Stack
+var Uint = zap.Uint
+var Uints = zap.Uints
+var Uint8 = zap.Uint8
+var Uint8s = zap.Uint8s
+var Uint16 = zap.Uint16
+var Uint16s = zap.Uint16s
+var Uint32 = zap.Uint32
+var Uint32s = zap.Uint32s
+var Uint64 = zap.Uint64
+var Uint64s = zap.Uint64s
 
-type LogLevel int
+type Level = zapcore.Level
 
 const (
-	_ LogLevel = iota
-	DEBUG
-	INFO
-	WARN
-	ERROR
-	PANIC
-	FATAL
+	// DebugLevel logs are usually disabled in production.
+	DebugLevel = zapcore.DebugLevel
+	// InfoLevel is the default logging priority.
+	InfoLevel = zapcore.InfoLevel
+	// WarnLevel logs are more important than Info.
+	WarnLevel = zapcore.WarnLevel
+	// ErrorLevel logs are high-priority.
+	ErrorLevel = zapcore.ErrorLevel
+	// PanicLevel logs a message, then panics.
+	PanicLevel = zapcore.PanicLevel
+	// FatalLevel logs a message, then calls os.Exit(1).
+	FatalLevel = zapcore.FatalLevel
 )
 
 var defaultConfig string = `{
-	"level": "debug",
+	"level": "info",
 	"encoding": "console",
 	"outputPaths": ["stdout"],
 	"errorOutputPaths": ["stderr"],
@@ -80,17 +118,17 @@ func NewLogger(opts LoggerOptions) (*Logger, error) {
 		}
 		switch(opts.GetLevel()) {
 		case "debug":
-			cfg.Level.SetLevel(zap.DebugLevel)
+			cfg.Level.SetLevel(zapcore.DebugLevel)
 		case "info":
-			cfg.Level.SetLevel(zap.InfoLevel)
+			cfg.Level.SetLevel(zapcore.InfoLevel)
 		case "warn":
-			cfg.Level.SetLevel(zap.WarnLevel)
+			cfg.Level.SetLevel(zapcore.WarnLevel)
 		case "error":
-			cfg.Level.SetLevel(zap.ErrorLevel)
+			cfg.Level.SetLevel(zapcore.ErrorLevel)
 		case "panic":
-			cfg.Level.SetLevel(zap.PanicLevel)
+			cfg.Level.SetLevel(zapcore.PanicLevel)
 		case "fatal":
-			cfg.Level.SetLevel(zap.FatalLevel)
+			cfg.Level.SetLevel(zapcore.FatalLevel)
 		}
 		// customize OutputPaths
 		outputPaths := opts.GetOutputPaths()
@@ -122,18 +160,18 @@ func (l *Logger) assertReady() *Logger {
 	return l
 }
 
-func (l *Logger) Log(level LogLevel, msg string, fields ...Field) {
+func (l *Logger) Log(level Level, msg string, fields ...Field) {
 	l.assertReady()
 	switch(level) {
-	case DEBUG:
+	case DebugLevel:
 		l.zapLogger.Debug(msg, fields...)
-	case INFO:
+	case InfoLevel:
 		l.zapLogger.Info(msg, fields...)
-	case WARN:
+	case WarnLevel:
 		l.zapLogger.Warn(msg, fields...)
-	case ERROR:
+	case ErrorLevel:
 		l.zapLogger.Error(msg, fields...)
-	case PANIC:
+	case PanicLevel:
 		l.zapLogger.Panic(msg, fields...)
 	default:
 		l.zapLogger.Fatal(msg, fields...)

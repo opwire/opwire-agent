@@ -245,7 +245,7 @@ func (e *Executor) Run(ib io.Reader, opts *CommandInvocation, ob io.Writer, eb i
 
 				select {
 				case <-ctx.Done():
-					runLogger.Log(loq.INFO, fmt.Sprintf("Context is timeout after %f seconds.", timeout), loq.Error(ctx.Err()))
+					runLogger.Log(loq.InfoLevel, fmt.Sprintf("Context is timeout after %f seconds.", timeout), loq.Error(ctx.Err()))
 					pipeChain.Stop()
 					err := <-c
 					state.IsTimeout = true
@@ -261,7 +261,7 @@ func (e *Executor) Run(ib io.Reader, opts *CommandInvocation, ob io.Writer, eb i
 			var timer *time.Timer
 			if timeout > 0 {
 				timer = time.AfterFunc(ConvertSecondToDuration(timeout), func() {
-					runLogger.Log(loq.INFO, fmt.Sprintf("Execution is timeout after %f seconds", timeout))
+					runLogger.Log(loq.InfoLevel, fmt.Sprintf("Execution is timeout after %f seconds", timeout))
 					pipeChain.Stop()
 					state.IsTimeout = true
 				})

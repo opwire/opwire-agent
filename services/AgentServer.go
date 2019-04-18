@@ -113,9 +113,9 @@ func NewAgentServer(o AgentServerOptions) (s *AgentServer, err error) {
 		cfgFrom := result.GetConfigFrom()
 		cfgPath := result.GetConfigPath()
 		if len(cfgFrom) == 0 {
-			s.logger.Log(loq.INFO, "Configuration file not found, use default configuration.")
+			s.logger.Log(loq.InfoLevel, "Configuration file not found, use default configuration.")
 		} else {
-			s.logger.Log(loq.INFO, fmt.Sprintf("Configuration path [%s] from [%s]", cfgPath, cfgFrom))
+			s.logger.Log(loq.InfoLevel, fmt.Sprintf("Configuration path [%s] from [%s]", cfgPath, cfgFrom))
 		}
 	}
 
@@ -225,14 +225,14 @@ func (s *AgentServer) Start() (error) {
 		sig := make(chan os.Signal, 1)
 		signal.Notify(sig, SIGLIST...)
 		<-sig
-		s.logger.Log(loq.INFO, "SIGTERM/SIGTSTP received. Agent is shutting down ...")
+		s.logger.Log(loq.InfoLevel, "SIGTERM/SIGTSTP received. Agent is shutting down ...")
 		s.Shutdown()
 		close(idleConnections)
 	}()
 
 	go func() {
 		if err := s.httpServer.ListenAndServe(); err != http.ErrServerClosed {
-			s.logger.Log(loq.ERROR, "httpServer.ListenAndServe() failed", loq.Error(err))
+			s.logger.Log(loq.ErrorLevel, "httpServer.ListenAndServe() failed", loq.Error(err))
 			close(idleConnections)
 		}
 	}()
@@ -255,17 +255,17 @@ func (s *AgentServer) Shutdown() (error) {
 
 	if s.isReady() {
 		if err := s.lockService(); err != nil {
-			s.logger.Log(loq.ERROR, "lockService() failed", loq.Error(err))
+			s.logger.Log(loq.ErrorLevel, "lockService() failed", loq.Error(err))
 		}
-		s.logger.Log(loq.INFO, "No new requests allowed, wait for ...", loq.Duration("closingTimeout", closingTimeout))
+		s.logger.Log(loq.InfoLevel, "No new requests allowed, wait for ...", loq.Duration("closingTimeout", closingTimeout))
 		<-time.Tick(closingTimeout)
 	}
 
 	if s.httpServer != nil {
 		if err := s.httpServer.Shutdown(context.Background()); err != nil {
-			s.logger.Log(loq.ERROR, "httpServer.Shutdown() failed", loq.Error(err))
+			s.logger.Log(loq.ErrorLevel, "httpServer.Shutdown() failed", loq.Error(err))
 		}
-		s.logger.Log(loq.INFO, "HTTP server is shutting down in ...", loq.Duration("closingTimeout", closingTimeout))
+		s.logger.Log(loq.InfoLevel, "HTTP server is shutting down in ...", loq.Duration("closingTimeout", closingTimeout))
 		<-time.Tick(closingTimeout)
 	}
 
@@ -551,7 +551,7 @@ func (s *AgentServer) buildCommandInvocation(r *http.Request, resourceName strin
 	// extract command identifier
 	requestId := r.Header.Get(REQ_HEADER_REQUEST_ID_NAME)
 	methodName := r.Method
-	s.logger.Log(loq.INFO, "A command has been invoked",
+	s.logger.Log(loq.InfoLevel, "A command has been invoked",
 		loq.String("resourceName", resourceName),
 		loq.String("methodName", methodName),
 		loq.String("requestId", requestId))

@@ -144,7 +144,7 @@ func (rr *ReqRestrictor) FilterByDigest(r *http.Request, action func() (interfac
 }
 
 func (rr *ReqRestrictor) LogResult(groupKey string, state interface{}, err error, shared bool) (interface{}, error, bool) {
-	rr.logger.Log(loq.INFO, fmt.Sprintf("request [%s] has duplicated by key: %t", groupKey, shared))
+	rr.logger.Log(loq.InfoLevel, fmt.Sprintf("request [%s] has duplicated by key: %t", groupKey, shared))
 	return state, err, shared
 }
 

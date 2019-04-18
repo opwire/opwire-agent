@@ -49,16 +49,16 @@ func (p *PipeChain) Run(ib io.Reader, ob io.Writer, eb io.Writer, chain ...*exec
 			for idx, cmd := range chain {
 				if cmd != nil && cmd.Process != nil {
 					if cmd.ProcessState == nil {
-						p.logger.Log(loq.INFO, fmt.Sprintf("Pipe[%d] - Process[%d] is running, kill it now", idx, cmd.Process.Pid))
+						p.logger.Log(loq.InfoLevel, fmt.Sprintf("Pipe[%d] - Process[%d] is running, kill it now", idx, cmd.Process.Pid))
 						procErr := cmd.Process.Kill()
 						if procErr != nil {
-							p.logger.Log(loq.ERROR, fmt.Sprintf("Pipe[%d] - Process[%d]: Kill() failed %s", idx, cmd.Process.Pid, procErr))
+							p.logger.Log(loq.ErrorLevel, fmt.Sprintf("Pipe[%d] - Process[%d]: Kill() failed %s", idx, cmd.Process.Pid, procErr))
 						}
 					} else {
-						p.logger.Log(loq.INFO, fmt.Sprintf("Pipe[%d] - Process[%d] has been finished", idx, cmd.Process.Pid))
+						p.logger.Log(loq.InfoLevel, fmt.Sprintf("Pipe[%d] - Process[%d] has been finished", idx, cmd.Process.Pid))
 					}
 				} else {
-					p.logger.Log(loq.INFO, fmt.Sprintf("Pipe[%d] - Process has not been started yet", idx))
+					p.logger.Log(loq.InfoLevel, fmt.Sprintf("Pipe[%d] - Process has not been started yet", idx))
 				}
 			}
 		}
