@@ -56,6 +56,8 @@ var Uint32s = zap.Uint32s
 var Uint64 = zap.Uint64
 var Uint64s = zap.Uint64s
 
+var Namespace = zap.Namespace
+
 type Level = zapcore.Level
 
 const (

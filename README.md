@@ -36,7 +36,75 @@ Support configuration file (`opwire-agent.cfg` or `opwire-agent.conf`) from (pri
 
 ### Structure
 
-Configuration in JSON pseudo-code:
+Configuration file description:
+
+* `version`
+* `agent`
+  * `explanation`
+    * `enabled`
+    * `format`
+  * `combine-stderr-stdout`
+* `http-server`
+  * `host`
+  * `port`
+  * `baseurl`
+  * `read-timeout`
+  * `write-timeout`
+* `main-resource`
+  * `pattern`
+  * `default`
+    * `command`
+    * `timeout`
+  * `methods`
+    * `GET`
+      * `command`
+      * `timeout`
+    * `POST`
+      * `command`
+      * `timeout`
+    * `PATCH`
+      * `command`
+      * `timeout`
+    * `PUT`
+      * `command`
+      * `timeout`
+    * `DELETE`
+      * `command`
+      * `timeout`
+  * `settings`
+  * `settings-format`
+* `resources`
+  * `<NAME_OF_RESOURCE>`
+    * `pattern`
+    * `default`
+      * `command`
+      * `timeout`
+    * `methods`
+      * `GET`
+        * `command`
+        * `timeout`
+      * `POST`
+        * `command`
+        * `timeout`
+      * `PATCH`
+        * `command`
+        * `timeout`
+      * `PUT`
+        * `command`
+        * `timeout`
+      * `DELETE`
+        * `command`
+        * `timeout`
+    * `settings`
+    * `settings-format`
+* `logging`
+  * `enabled`
+  * `format`
+  * `level`
+  * `output-paths`
+  * `error-output-paths`
+
+Configuration file in JSON pseudo-code:
 
 ```javascript
 {
@@ -97,7 +165,7 @@ Example:
 
 ```javascript
 {
-  "version": "v1.0.7",
+  "version": "v1.0.8",
   "main-resource": {
     "default": {
       "command": "echo 'Hello opwire-agent'"
@@ -142,6 +210,12 @@ Example:
       },
       "settings-format": "json"
     }
+  },
+  "logging": {
+    "format": "flat",
+    "level": "debug",
+    "output-paths": ["stdout"],
+    "error-output-paths": ["stdout"]
   }
 }
 ```
