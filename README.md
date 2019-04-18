@@ -50,6 +50,17 @@ Configuration file description:
   * `baseurl`
   * `read-timeout`
   * `write-timeout`
+  * `concurrent-limit`
+    * `enabled`
+    * `total`
+  * `single-flight`
+    * `enabled`
+    * `req-id`
+    * `by-method`
+    * `by-path`
+    * `by-headers`
+    * `by-queries`
+    * `by-userip`
 * `main-resource`
   * `pattern`
   * `default`
