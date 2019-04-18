@@ -130,6 +130,16 @@ var configurationSchema string = `{
 		"CommandEntrypoint": {
 			"type": "object",
 			"properties": {
+				"enabled": {
+					"oneOf": [
+						{
+							"type": "null"
+						},
+						{
+							"type": "boolean"
+						}
+					]
+				},
 				"default": {
 					"$ref": "#/definitions/CommandDescriptor"
 				},

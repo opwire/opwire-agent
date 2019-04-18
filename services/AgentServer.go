@@ -276,36 +276,36 @@ func (s *AgentServer) registerResources(conf *config.Configuration) {
 	// register the main resource
 	if conf.Main != nil {
 		resourceName := invokers.MAIN_RESOURCE
-		resource := conf.Main
-		s.registerResource(resourceName, resource, conf.Settings, conf.SettingsFormat)
+		resourceConf := conf.Main
+		s.registerResource(resourceName, resourceConf, conf.Settings, conf.SettingsFormat)
 	}
 
 	// register the sub-resources
 	if conf.Resources != nil {
-		for resourceName, resource := range conf.Resources {
-			s.registerResource(resourceName, &resource, conf.Settings, conf.SettingsFormat)
+		for resourceName, resourceConf := range conf.Resources {
+			s.registerResource(resourceName, &resourceConf, conf.Settings, conf.SettingsFormat)
 		}
 	}
 }
 
-func (s *AgentServer) registerResource(resourceName string, resource *invokers.CommandEntrypoint,
+func (s *AgentServer) registerResource(resourceName string, resourceConf *invokers.CommandEntrypoint,
 		settings map[string]interface{}, format *string) {
-	if resource != nil {
-		s.executor.Register(resource.Default, resourceName)
-		if len(resource.Methods) > 0 {
-			for methodName, methodDescriptor := range resource.Methods {
+	if resourceConf != nil && (resourceConf.Enabled == nil || *resourceConf.Enabled == true) {
+		s.executor.Register(resourceConf.Default, resourceName)
+		if len(resourceConf.Methods) > 0 {
+			for methodName, methodDescriptor := range resourceConf.Methods {
 				if methodId, ok := normalizeMethod(methodName); ok {
 					s.executor.Register(methodDescriptor, resourceName, methodId)
 				}
 			}
 		}
-		if privSettings, err := utils.CombineSettings(resource.Settings, settings); err == nil {
+		if privSettings, err := utils.CombineSettings(resourceConf.Settings, settings); err == nil {
 			privFormat := "json"
 			if format != nil {
 				privFormat = *format
 			}
-			if resource.SettingsFormat != nil {
-				privFormat = *resource.SettingsFormat
+			if resourceConf.SettingsFormat != nil {
+				privFormat = *resourceConf.SettingsFormat
 			}
 			s.executor.StoreSettings(OPWIRE_SETTINGS_PREFIX, privSettings, privFormat, resourceName)
 		}
@@ -319,7 +319,6 @@ func (s *AgentServer) mappingResourcePatterns(conf *config.Configuration) {
 		resourceConf := conf.Main
 		s.mappingResourcePattern(resourceName, resourceConf)
 	}
-
 	// register the sub-resources
 	if conf.Resources != nil {
 		for resourceName, resourceConf := range conf.Resources {
@@ -329,17 +328,18 @@ func (s *AgentServer) mappingResourcePatterns(conf *config.Configuration) {
 }
 
 func (s *AgentServer) mappingResourcePattern(resourceName string, resourceConf *invokers.CommandEntrypoint) {
-	if len(resourceName) > 0 && resourceConf.Pattern != nil {
+	if len(resourceName) > 0 && resourceConf.Pattern != nil && (resourceConf.Enabled == nil || *resourceConf.Enabled == true) {
 		s.httpRouter.HandleFunc(*resourceConf.Pattern, s.makeUrlPatternHandler(resourceName))
 	}
 }
 
 func (s *AgentServer) mappingResourceToExecUrl(defaultBaseUrl string, conf *config.Configuration) {
 	baseUrl := buildExecUrl(defaultBaseUrl, conf)
-	s.httpRouter.HandleFunc(baseUrl + `/{resourceName:` + config.RESOURCE_NAME_PATTERN + `}`, s.makeInvocationHandler())
-	s.httpRouter.HandleFunc(baseUrl + `/`, s.makeInvocationHandler())
+	handler := s.makeInvocationHandler()
+	s.httpRouter.HandleFunc(baseUrl + `/{resourceName:` + config.RESOURCE_NAME_PATTERN + `}`, handler)
+	s.httpRouter.HandleFunc(baseUrl + `/`, handler)
 	if len(baseUrl) > 0 {
-		s.httpRouter.HandleFunc(baseUrl, s.makeInvocationHandler())
+		s.httpRouter.HandleFunc(baseUrl, handler)
 	}
 }
 
@@ -744,7 +744,7 @@ func validateResourcePatterns(conf *config.Configuration) error {
 var re *regexp.Regexp = regexp.MustCompile(`{([^{]*)}`)
 
 func countDuplicatedPatterns(patterns map[string][]string, resourceConf *invokers.CommandEntrypoint) {
-	if resourceConf.Pattern != nil {
+	if resourceConf.Pattern != nil && (resourceConf.Enabled == nil || *resourceConf.Enabled == true) {
 		s := re.ReplaceAllString(*resourceConf.Pattern, "*")
 		if _, ok := patterns[s]; !ok {
 			patterns[s] = make([]string, 0)

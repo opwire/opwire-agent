@@ -62,6 +62,7 @@ Configuration file description:
     * `by-queries`
     * `by-userip`
 * `main-resource`
+  * `enabled`
   * `pattern`
   * `default`
     * `command`
@@ -86,6 +87,7 @@ Configuration file description:
   * `settings-format`
 * `resources`
   * `<NAME_OF_RESOURCE>`
+    * `enabled`
     * `pattern`
     * `default`
       * `command`
