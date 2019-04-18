@@ -290,7 +290,7 @@ func (s *AgentServer) registerResources(conf *config.Configuration) {
 
 func (s *AgentServer) registerResource(resourceName string, resource *invokers.CommandEntrypoint,
 		settings map[string]interface{}, format *string) {
-	if resource != nil {
+	if resource != nil && (resource.Enabled == nil || *resource.Enabled == true) {
 		s.executor.Register(resource.Default, resourceName)
 		if len(resource.Methods) > 0 {
 			for methodName, methodDescriptor := range resource.Methods {
