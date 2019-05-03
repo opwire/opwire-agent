@@ -153,7 +153,6 @@ func NewAgentServer(o AgentServerOptions) (s *AgentServer, err error) {
 	s.httpRouter.HandleFunc(CTRL_BASEURL + `/unlock`, s.makeLockServiceHandler(false))
 
 	s.mappingResourceToExecUrl(EXEC_BASEURL, conf)
-	s.mappingResourceToExecUrl(EXEC_BASEURL_DEPRECATED, conf)
 
 	// validate duplicated resource patterns
 	if err := validateResourcePatterns(conf); err != nil {
@@ -764,8 +763,7 @@ func filterDuplicatedPatterns(patterns map[string][]string) []string {
 }
 
 const CTRL_BASEURL string = `/_`
-const EXEC_BASEURL string = `/$`
-const EXEC_BASEURL_DEPRECATED string = `/run`
+const EXEC_BASEURL string = `/-`
 const DEFAULT_PORT uint = 17779
 const OPWIRE_EDITION_PREFIX string = "OPWIRE_EDITION"
 const OPWIRE_EDITION_PREFIX_PLUS string = OPWIRE_EDITION_PREFIX + "="

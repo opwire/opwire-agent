@@ -167,7 +167,7 @@ Configuration file in JSON pseudo-code:
   "http-server": {
     "host": "<YOUR-BINDING-ADDR>",
     "port": 8888, // default: 17779
-    "baseurl": "/run", // default: "/$"
+    "baseurl": "/run", // default: "/-"
     "read-timeout": "60s", // default: 30s
     "write-timeout": "90s" // default: 30s
   }
