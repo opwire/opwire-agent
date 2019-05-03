@@ -3,7 +3,7 @@ package services
 import (
 	"testing"
 	"github.com/stretchr/testify/assert"
-	"github.com/opwire/opwire-agent/utils"
+	"github.com/opwire/opwire-agent/lib/utils"
 )
 
 func TestNewAgentServer(t *testing.T) {

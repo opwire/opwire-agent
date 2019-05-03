@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 	clp "github.com/urfave/cli"
-	"github.com/opwire/opwire-agent/services"
-	"github.com/opwire/opwire-agent/utils"
+	"github.com/opwire/opwire-agent/lib/services"
+	"github.com/opwire/opwire-agent/lib/utils"
 )
 
 type Commander struct {

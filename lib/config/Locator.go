@@ -4,8 +4,8 @@ import (
 	"path/filepath"
 	"os"
 	"os/user"
-	"github.com/opwire/opwire-agent/storages"
-	"github.com/opwire/opwire-agent/utils"
+	"github.com/opwire/opwire-agent/lib/storages"
+	"github.com/opwire/opwire-agent/lib/utils"
 )
 
 const BLANK = ""

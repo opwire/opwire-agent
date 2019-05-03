@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/opwire/opwire-agent/utils"
+	"github.com/opwire/opwire-agent/lib/utils"
 )
 
 type TextFormatter struct {

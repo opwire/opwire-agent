@@ -15,10 +15,10 @@ import (
 	"sync/atomic"
 	"time"
 	"github.com/gorilla/mux"
-	"github.com/opwire/opwire-agent/config"
-	"github.com/opwire/opwire-agent/invokers"
-	loq "github.com/opwire/opwire-agent/logging"
-	"github.com/opwire/opwire-agent/utils"
+	"github.com/opwire/opwire-agent/lib/config"
+	"github.com/opwire/opwire-agent/lib/invokers"
+	loq "github.com/opwire/opwire-agent/lib/logging"
+	"github.com/opwire/opwire-agent/lib/utils"
 )
 
 type CommandExecutor interface {

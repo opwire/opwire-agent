@@ -3,9 +3,9 @@ package config
 import (
 	"encoding/json"
 	"time"
-	"github.com/opwire/opwire-agent/invokers"
-	"github.com/opwire/opwire-agent/storages"
-	"github.com/opwire/opwire-agent/utils"
+	"github.com/opwire/opwire-agent/lib/invokers"
+	"github.com/opwire/opwire-agent/lib/storages"
+	"github.com/opwire/opwire-agent/lib/utils"
 )
 
 type Configuration struct {

@@ -7,8 +7,8 @@ import(
 	"io"
 	"os/exec"
 	"time"
-	loq "github.com/opwire/opwire-agent/logging"
-	"github.com/opwire/opwire-agent/utils"
+	loq "github.com/opwire/opwire-agent/lib/logging"
+	"github.com/opwire/opwire-agent/lib/utils"
 )
 
 const BLANK string = ""

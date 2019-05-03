@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os/exec"
-	loq "github.com/opwire/opwire-agent/logging"
+	loq "github.com/opwire/opwire-agent/lib/logging"
 )
 
 type PipeChain struct {

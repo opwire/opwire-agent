@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"runtime"
 	"strings"
-	loq "github.com/opwire/opwire-agent/logging"
+	loq "github.com/opwire/opwire-agent/lib/logging"
 	"golang.org/x/sync/semaphore"
 	"golang.org/x/sync/singleflight"
 )
